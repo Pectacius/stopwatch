@@ -1,24 +1,29 @@
 # GEM is setting this as minimum version
 cmake_minimum_required(VERSION 2.8.12)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
-
 project(libstopwatch)
+
+# Prevent in-source builds as it pollutes the source directory
+if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
+    message(
+            FATAL_ERROR
+            "In-source build prohibited. Please make a build directory and rerun CMake."
+    )
+endif ()
+
+# Allow PAPI to be found via a find_package as it does not provide any CMake targets itself
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 find_package(PAPI REQUIRED)
 
-add_library(libstopwatch STATIC src/stopwatch.c include/stopwatch/stopwatch.h)
+add_library(libstopwatch SHARED src/stopwatch.c include/stopwatch/stopwatch.h)
 
 target_include_directories(libstopwatch PUBLIC ${CMAKE_SOURCE_DIR}/include ${PAPI_INCLUDE_DIRS})
 target_link_libraries(libstopwatch PRIVATE ${PAPI_LIBRARIES})
 
+# Build examples from the example directory
+option(BUILD_EXAMPLES "Build example programs" OFF)
 
-add_executable(matmul src/papi_matmul.c)
-target_include_directories(matmul PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(matmul libstopwatch)
-
-
-add_executable(matmul_dist src/matmul_dist.c)
-target_include_directories(matmul_dist PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_link_libraries(matmul_dist libstopwatch)
+if (BUILD_EXAMPLES)
+    add_subdirectory("examples")
+endif ()

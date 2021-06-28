@@ -19,29 +19,33 @@ if (UNIX)
     message($ENV{PAPI_DIR})
 
     find_path(PAPI_INCLUDE_DIR
-            NAMES   papi.h
-            PATHS   $ENV{PAPI_DIR}/include
-                    /usr/include
-                    /usr/local/include
-                    /opt/local/include
-                    ${CMAKE_SOURCE_DIR}/include
+            NAMES papi.h
+            PATHS $ENV{PAPI_DIR}/include
+            /usr/include
+            /usr/local/include
+            /opt/local/include
+            ${CMAKE_SOURCE_DIR}/include
             REQUIRED)
 
     find_library(PAPI_LIBRARY
-            NAMES   papi
-            PATHS   $ENV{PAPI_DIR}/lib
-                    /usr/lib64
-                    /usr/lib
-                    /usr/local/lib
-                    /opt/local/lib
-                    ${CMAKE_SOURCE_DIR}/lib
+            NAMES papi
+            PATHS $ENV{PAPI_DIR}/lib
+            /usr/lib64
+            /usr/lib
+            /usr/local/lib
+            /opt/local/lib
+            ${CMAKE_SOURCE_DIR}/lib
             REQUIRED)
 
     include(FindPackageHandleStandardArgs)
     # handle the QUIETLY and REQUIRED arguments and set PAPI_FOUND to TRUE
     # if all listed variables are TRUE
-    find_package_handle_standard_args(PAPI  DEFAULT_MSG
-            PAPI_LIBRARY PAPI_INCLUDE_DIR)
+    find_package_handle_standard_args(
+            PAPI
+            DEFAULT_MSG
+            PAPI_LIBRARY
+            PAPI_INCLUDE_DIR
+    )
 
 
     mark_as_advanced(PAPI_INCLUDE_DIR PAPI_LIBRARY)
@@ -50,6 +54,6 @@ if (UNIX)
     set(PAPI_LIBRARIES ${PAPI_LIBRARY})
     set(PAPI_INCLUDE_DIRS ${PAPI_INCLUDE_DIR})
 
-else()
+else ()
     message(FATAL_ERROR "PAPI is only available on UNIX platforms")
 endif ()
