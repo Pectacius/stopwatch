@@ -18,10 +18,6 @@ endif ()
 # Allow PAPI to be found via a find_package as it does not provide any CMake targets itself
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
-# Cached variable where PAPI is installed. This can be set via calling CMake with -DPAPI_DIR. If it is not provided a
-# default value of /usr/local is used instead.
-#set(PAPI_DIR "/usr/local" CACHE STRING "Directory where PAPI is installed")
-
 find_package(PAPI REQUIRED)
 
 add_library(stopwatch

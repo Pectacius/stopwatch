@@ -16,28 +16,17 @@
 if (UNIX)
     # The installation instructions from the official PAPI documentation:
     #   https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md
-    # suggest that the environment variable <PAPI_DIR> should be set to where PAPI is installed. However environment
-    # variables are not recommended hence the cached variable <PAPI_DIR> (note the difference between the environment
-    # variable) is used to find the PAPI install location. Providing this variable is not required as some hard coded
-    # paths where possible PAPI installation could be are listed.
+    # suggest that the environment variable <PAPI_DIR> should be set to where PAPI is installed. This variable is used
+    # to find where PAPI is installed. Default locations are also searched if the environment variable is not set.
 
     find_path(PAPI_INCLUDE_DIR
             NAMES papi.h
             PATHS $ENV{PAPI_DIR}/include
-            /usr/include
-            /usr/local/include
-            /opt/local/include
-            ${CMAKE_SOURCE_DIR}/include
             REQUIRED)
 
     find_library(PAPI_LIBRARY
             NAMES papi
             PATHS $ENV{PAPI_DIR}/lib
-            /usr/lib64
-            /usr/lib
-            /usr/local/lib
-            /opt/local/lib
-            ${CMAKE_SOURCE_DIR}/lib
             REQUIRED)
 
     include(FindPackageHandleStandardArgs)
