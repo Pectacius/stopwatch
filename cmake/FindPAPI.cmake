@@ -5,18 +5,21 @@
 #   https://gitlab.kitware.com/cmake/community/-/wikis/doc/tutorials/How-To-Find-Libraries
 #
 # On success the following variables will be defined
-# PAPI_FOUND - system has PAPI installed
-# PAPI_INCLUDE_DIRS - the PAPI header include directories
-# PAPI_LIBRARIES - the PAPI library to link with
+#   PAPI_FOUND - system has PAPI installed
+#   PAPI_INCLUDE_DIRS - the PAPI header include directories
+#   PAPI_LIBRARIES - the PAPI library to link with
+#
+# It will also define the following imported targets
+#   PAPI::PAPI
+#=======================================================================================================================
 
 if (UNIX)
     # The installation instructions from the official PAPI documentation:
     #   https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md
-    # suggest that the environment variable <PAPI_DIR> should be set to where PAPI is installed, hence the directory
-    # specified by <PAPI_DIR> will be searched first. Some other hard coded directories are also provided for fallback.
-    # If the headers and libraries cannot be found in any of these directories, it is assumed that PAPI is not installed.
-
-    message($ENV{PAPI_DIR})
+    # suggest that the environment variable <PAPI_DIR> should be set to where PAPI is installed. However environment
+    # variables are not recommended hence the cached variable <PAPI_DIR> (note the difference between the environment
+    # variable) is used to find the PAPI install location. Providing this variable is not required as some hard coded
+    # paths where possible PAPI installation could be are listed.
 
     find_path(PAPI_INCLUDE_DIR
             NAMES papi.h
@@ -47,12 +50,14 @@ if (UNIX)
             PAPI_INCLUDE_DIR
     )
 
-
     mark_as_advanced(PAPI_INCLUDE_DIR PAPI_LIBRARY)
 
-    # Variables to define
-    set(PAPI_LIBRARIES ${PAPI_LIBRARY})
-    set(PAPI_INCLUDE_DIRS ${PAPI_INCLUDE_DIR})
+    # Make PAPI an imported target and also include its public header papi.h
+    if (PAPI_FOUND AND NOT TARGET PAPI::PAPI)
+        add_library(PAPI::PAPI SHARED IMPORTED)
+        set_target_properties(PAPI::PAPI PROPERTIES IMPORTED_LOCATION ${PAPI_LIBRARY})
+        target_include_directories(PAPI::PAPI INTERFACE ${PAPI_INCLUDE_DIR})
+    endif ()
 
 else ()
     message(FATAL_ERROR "PAPI is only available on UNIX platforms")
