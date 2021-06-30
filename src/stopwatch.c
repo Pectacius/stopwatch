@@ -11,15 +11,10 @@ static int events[NUM_OF_EVENTS] = {PAPI_L1_TCM, PAPI_RES_STL};
 static int event_set = PAPI_NULL;
 
 static long long results[NUM_OF_EVENTS] = {0, 0};
+
 struct Timing {
   long long start_real_cyc;
-  long long start_virt_cyc;
   long long start_real_usec;
-  long long start_virt_usec;
-  long long end_real_cyc;
-  long long end_virt_cyc;
-  long long end_real_usec;
-  long long end_virt_usec;
 };
 static struct Timing timing;
 
@@ -50,11 +45,9 @@ int init_stopwatch() {
   return -1;
 }
 
-int start_measurement() {
+int start_stopwatch() {
   timing.start_real_cyc = PAPI_get_real_cyc();
   timing.start_real_usec = PAPI_get_real_usec();
-  timing.start_virt_cyc = PAPI_get_virt_cyc();
-  timing.start_virt_usec = PAPI_get_virt_usec();
 
   int PAPI_ret = PAPI_start(event_set);
   if (PAPI_ret != PAPI_OK) {
@@ -64,33 +57,49 @@ int start_measurement() {
   return 0;
 }
 
-int stop_measurement(struct Measurements *result) {
+int stop_stopwatch() {
   int PAPI_ret = PAPI_stop(event_set, results);
   if (PAPI_ret != PAPI_OK) {
     return -1;
   }
 
-  timing.end_real_cyc = PAPI_get_real_cyc();
-  timing.end_real_usec = PAPI_get_real_usec();
-  timing.end_virt_cyc = PAPI_get_virt_cyc();
-  timing.end_virt_usec = PAPI_get_virt_usec();
+  return 0;
+}
 
-  result->l1_misses = results[0];
-  result->cyc_wait_resource = results[1];
-  result->real_cyc_elapsed = timing.end_real_cyc - timing.start_real_cyc;
-  result->real_usec_elapsed = timing.end_real_usec - timing.start_real_usec;
-  result->virt_cyc_elapsed = timing.end_virt_cyc - timing.start_virt_cyc;
-  result->virt_usec_elapsed = timing.end_virt_usec - timing.start_virt_usec;
+int destroy_stopwatch() {
+  if (PAPI_cleanup_eventset(event_set) != PAPI_OK) {
+    return -1;
+  }
+
+  if (PAPI_destroy_eventset(&event_set) != PAPI_OK) {
+    return -1;
+  }
+
+  PAPI_shutdown();
+
+  initialized_papi = 0;
 
   return 0;
 }
 
-void print_results(struct Measurements *result) {
-  printf("L1 cache misses: %lld\n", result->l1_misses);
-  printf("Cycles waiting for resources: %lld\n", result->cyc_wait_resource);
+int read_stopwatch(struct Measurements *reading) {
+  int PAPI_ret = PAPI_read(event_set, results);
+  if (PAPI_ret != PAPI_OK) {
+    return -1;
+  }
+  reading->real_cyc_elapsed_since_start = PAPI_get_real_cyc() - timing.start_real_cyc;
+  reading->real_usec_elapsed_since_start = PAPI_get_real_usec() - timing.start_real_usec;
+  reading->l1_misses_since_start = results[0];
+  reading->cyc_wait_resource_since_start = results[1];
+  return 0;
+}
 
-  printf("Total real cycles elapsed: %lld\n", result->real_cyc_elapsed);
-  printf("Total virtual cycles elapsed: %lld\n", result->virt_cyc_elapsed);
-  printf("Total real microseconds elapsed: %lld\n", result->real_usec_elapsed);
-  printf("Total virtual microseconds elapsed: %lld\n\n", result->virt_usec_elapsed);
+void print_results(struct Measurements *start, struct Measurements *end) {
+  printf("L1 cache misses: %lld\n", end->l1_misses_since_start - start->l1_misses_since_start);
+  printf("Cycles waiting for resources: %lld\n",
+         end->cyc_wait_resource_since_start - start->cyc_wait_resource_since_start);
+
+  printf("Total real cycles elapsed: %lld\n", end->real_cyc_elapsed_since_start - start->real_cyc_elapsed_since_start);
+  printf("Total real microseconds elapsed: %lld\n\n",
+         end->real_usec_elapsed_since_start - start->real_usec_elapsed_since_start);
 }

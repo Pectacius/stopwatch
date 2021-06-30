@@ -2,21 +2,23 @@
 #define STOPWATCH_STOPWATCH_H
 
 // structure to hold the measurements
-struct Measurements{
-    long long real_cyc_elapsed;
-    long long real_usec_elapsed;
-    long long virt_cyc_elapsed;
-    long long virt_usec_elapsed;
-    long long l1_misses;
-    long long cyc_wait_resource;
+struct Measurements {
+  long long real_cyc_elapsed_since_start;
+  long long real_usec_elapsed_since_start;
+  long long l1_misses_since_start;
+  long long cyc_wait_resource_since_start;
 };
 
 int init_stopwatch();
 
-int start_measurement();
+int start_stopwatch();
 
-int stop_measurement(struct Measurements* result);
+int stop_stopwatch();
 
-void print_results(struct Measurements* result);
+int destroy_stopwatch();
+
+int read_stopwatch(struct Measurements *reading);
+
+void print_results(struct Measurements *start, struct Measurements *end);
 
 #endif //STOPWATCH_STOPWATCH_H
