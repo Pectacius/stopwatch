@@ -13,20 +13,14 @@ int main() {
   int N = 1000;
   int itercount = 10;
 
-  struct Measurements *row_iter_start = malloc(sizeof(struct Measurements) * itercount);
-  struct Measurements *row_iter_end = malloc(sizeof(struct Measurements) * itercount);
-  struct Measurements *col_iter_start = malloc(sizeof(struct Measurements) * itercount);
-  struct Measurements *col_iter_end = malloc(sizeof(struct Measurements) * itercount);
+  struct StopwatchReadings *row_iter_start = malloc(sizeof(struct StopwatchReadings) * itercount);
+  struct StopwatchReadings *row_iter_end = malloc(sizeof(struct StopwatchReadings) * itercount);
+  struct StopwatchReadings *col_iter_start = malloc(sizeof(struct StopwatchReadings) * itercount);
+  struct StopwatchReadings *col_iter_end = malloc(sizeof(struct StopwatchReadings) * itercount);
 
   int ret_val = init_stopwatch();
   if (ret_val != 0) {
     printf("Error initializing stopwatch\n");
-    return -1;
-  }
-
-  ret_val = start_stopwatch();
-  if (ret_val != 0) {
-    printf("Error starting stopwatch\n");
     return -1;
   }
 
@@ -107,10 +101,10 @@ int main() {
   fprintf(fpt, "row_real_cyc,row_real_usec,row_l1_miss,row_cyc_wait_resource\n");
   for (int i = 0; i < itercount; i++) {
     fprintf(fpt, "%lld,%lld,%lld,%lld\n",
-            row_iter_end[i].real_cyc_elapsed_since_start - row_iter_start[i].real_cyc_elapsed_since_start,
-            row_iter_end[i].real_usec_elapsed_since_start - row_iter_start[i].real_usec_elapsed_since_start,
-            row_iter_end[i].l1_misses_since_start - row_iter_start[i].l1_misses_since_start,
-            row_iter_end[i].cyc_wait_resource_since_start - row_iter_start[i].cyc_wait_resource_since_start);
+            row_iter_end[i].real_cyc - row_iter_start[i].real_cyc,
+            row_iter_end[i].real_usec - row_iter_start[i].real_usec,
+            row_iter_end[i].l1_misses - row_iter_start[i].l1_misses,
+            row_iter_end[i].cyc_wait_resource - row_iter_start[i].cyc_wait_resource);
   }
   fclose(fpt);
 
@@ -120,10 +114,10 @@ int main() {
 
   for (int i = 0; i < itercount; i++) {
     fprintf(fpt, "%lld,%lld,%lld,%lld\n",
-            col_iter_end[i].real_cyc_elapsed_since_start - col_iter_start[i].real_cyc_elapsed_since_start,
-            col_iter_end[i].real_usec_elapsed_since_start - col_iter_start[i].real_usec_elapsed_since_start,
-            col_iter_end[i].l1_misses_since_start - col_iter_start[i].l1_misses_since_start,
-            col_iter_end[i].cyc_wait_resource_since_start - col_iter_start[i].cyc_wait_resource_since_start);
+            col_iter_end[i].real_cyc - col_iter_start[i].real_cyc,
+            col_iter_end[i].real_usec - col_iter_start[i].real_usec,
+            col_iter_end[i].l1_misses - col_iter_start[i].l1_misses,
+            col_iter_end[i].cyc_wait_resource - col_iter_start[i].cyc_wait_resource);
   }
 }
 

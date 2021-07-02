@@ -45,6 +45,6 @@ read_stopwatch(start_reading);
 foo();
 read_stopwatch(end_reading);
 ```
-where `start_reading` is of type `Measurements` and holds the state of the monotonic clock before `foo` executes and
-`end_reading` is also of type `Measurements` which holds the state of the monotonic clock after `foo` is done executing.
+where `start_reading` is of type `StopwatchReadings` and holds the state of the monotonic clock before `foo` executes and
+`end_reading` is also of type `StopwatchReadings` which holds the state of the monotonic clock after `foo` is done executing.
 The difference would be the actual value of `foo`'s performance.
