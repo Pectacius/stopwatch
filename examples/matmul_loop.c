@@ -7,9 +7,7 @@
 void row_major(int N, float A[N][N], float B[N][N], float C[N][N]);
 
 int main() {
-  int ret_val = init_stopwatch();
-
-  if (ret_val != 0) {
+  if (init_event_timers() != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     exit(-1);
   }
@@ -18,7 +16,9 @@ int main() {
     int N = 500;
     int itercount = 10;
 
-    struct StopwatchReadings row_major_total_start, row_major_total_end;
+    // Structures for holding measurements
+    struct StopwatchReadings row_major_total = create_stopwatch_readings();
+    struct StopwatchReadings row_major_single = create_stopwatch_readings();
 
     // Allocate the A, B, and C arrays on the heap.
     // See https://stackoverflow.com/questions/10116368/heap-allocate-a-2d-array-not-array-of-pointers
@@ -38,8 +38,7 @@ int main() {
       }
     }
 
-    ret_val = read_stopwatch(&row_major_total_start);
-    if (ret_val != 0) {
+    if (record_start_measurements(&row_major_total) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       exit(-1);
     }
@@ -48,12 +47,8 @@ int main() {
       // clear C array
       memset(C, 0, sizeof(float) * N * N);
 
-      // Structures for holding measurements
-      struct StopwatchReadings row_major_single_start, row_major_single_end;
-
       // read start time
-      ret_val = read_stopwatch(&row_major_single_start);
-      if (ret_val != 0) {
+      if (record_start_measurements(&row_major_single) != STOPWATCH_OK) {
         printf("Error reading measurements\n");
         exit(-1);
       }
@@ -61,16 +56,13 @@ int main() {
       row_major(N, A, B, C);
 
       // read end time
-      ret_val = read_stopwatch(&row_major_single_end);
-      if (ret_val != 0) {
+      if (record_end_measurements(&row_major_single) != STOPWATCH_OK) {
         printf("Error reading measurements\n");
         exit(-1);
       }
-      printf("Iteration %d:\n", iter + 1);
-      print_results(&row_major_single_start, &row_major_single_end);
     }
-    ret_val = read_stopwatch(&row_major_total_end);
-    if (ret_val != 0) {
+
+    if (record_end_measurements(&row_major_total) != 0) {
       printf("Error reading measurements\n");
       exit(-1);
     }
@@ -80,11 +72,13 @@ int main() {
     free(C);
 
     printf("%d iterations of %dx%d row major matrix multiplication\n", itercount, N, N);
-    print_results(&row_major_total_start, &row_major_total_end);
+    printf("Total loop measurements\n");
+    print_results(&row_major_total);
+    printf("Accumulated cycles measurements\n");
+    print_results(&row_major_single);
   }
 
-  ret_val = destroy_stopwatch();
-  if (ret_val != 0) {
+  if (destroy_event_timers() != STOPWATCH_OK) {
     printf("Error cleaning up stopwatch\n");
     exit(-1);
   }
