@@ -235,6 +235,8 @@ int main() {
     print_results(&cache_obs_read);
   }
 
+  destroy_event_timers();
+
   return 0;
 }
 

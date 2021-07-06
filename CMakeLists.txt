@@ -10,8 +10,8 @@ project(libstopwatch LANGUAGES C)
 # Prevent in-source builds as it pollutes the source directory
 if ("${CMAKE_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
     message(
-        FATAL_ERROR
-        "In-source build prohibited. Please make a build directory and rerun CMake."
+            FATAL_ERROR
+            "In-source build prohibited. Please make a build directory and rerun CMake."
     )
 endif ()
 
@@ -21,20 +21,20 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 find_package(PAPI REQUIRED)
 
 add_library(stopwatch
-            src/stopwatch.c
-            include/stopwatch/stopwatch.h
+        src/stopwatch.c
+        include/stopwatch/stopwatch.h
         )
 
 # Consumers of this library are going to need its public headers but not the PAPI headers
 target_include_directories(stopwatch
         PUBLIC
-            $<INSTALL_INTERFACE:include>
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         )
 
 target_link_libraries(stopwatch
         PRIVATE
-            PAPI::PAPI
+        PAPI::PAPI
         )
 
 # Build examples from the example directory
@@ -61,11 +61,11 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(EXPORT stopwatch-targets
         FILE
-            StopwatchTargets.cmake
+        StopwatchTargets.cmake
         NAMESPACE
-            Stopwatch::
+        Stopwatch::
         DESTINATION
-            ${INSTALL_CONFIGDIR}
+        ${INSTALL_CONFIGDIR}
         )
 
 include(CMakePackageConfigHelpers)
@@ -96,3 +96,15 @@ export(EXPORT stopwatch-targets
 # Register package in the User Package Registry
 #=======================================================================================================================
 export(PACKAGE Stopwatch)
+
+# ======================================================================================================================
+# Building test suites
+# ======================================================================================================================
+include(CTest)
+
+if (BUILD_TESTING)
+    add_executable(stopwatch_unittests "test/stopwatch_tests.c" "test/mat_mul.h")
+    target_link_libraries(stopwatch_unittests stopwatch)
+
+    add_test(stopwatch_tests stopwatch_unittests)
+endif ()

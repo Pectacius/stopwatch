@@ -1,15 +1,16 @@
 # Stopwatch
 
-API wrapper around [PAPI](https://icl.utk.edu/papi/)
+API wrapper for [PAPI](https://icl.utk.edu/papi/)
 
 ### Dependencies
-- PAPI (Instructions can be found [here](https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md))
+- PAPI (Instructions can be found [here](https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md)) or be
+installed with a package manager with the name `libpapi-dev`
 
 ## How to build
 Since the PAPI installation does to provide any CMake targets, Stopwatch attempts to find PAPI and create a target for
-it to use in CMake builds. It will first search the environment variable `PAPI_DIR` which the PAPI installation guide
-recommends to set if installing in a non-orthodox location. Default locations such as `/usr/local` will be checked after
-the environment variable `PAPI_DIR` is checked.
+it to use in CMake builds. It will look into default locations such as `/usr/lib`. If installing PAPI with a package 
+manager, PAPI should be found with no issues. Support for non-orthodox installation directories that usually come from
+building from source will come later...
 
 ### Building Stopwatch
 ```shell

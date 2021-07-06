@@ -21,12 +21,10 @@ if (UNIX)
 
     find_path(PAPI_INCLUDE_DIR
             NAMES papi.h
-            PATHS $ENV{PAPI_DIR}/include
             REQUIRED)
 
     find_library(PAPI_LIBRARY
             NAMES papi
-            PATHS $ENV{PAPI_DIR}/lib
             REQUIRED)
 
     include(FindPackageHandleStandardArgs)

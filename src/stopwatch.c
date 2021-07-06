@@ -52,7 +52,7 @@ int init_event_timers() {
     // is the same as init_stopwatch's success.
     return ret_val;
   }
-  return -1;
+  return STOPWATCH_ERR;
 }
 
 static int stop_stopwatch() {
