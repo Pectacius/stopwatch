@@ -38,14 +38,15 @@ In the CMakeLists.txt add:
 - `target_link_libraries(target Stopwatch::Stopwatch)` to link with the library
 
 At the moment, the Stopwatch interface should be used like so:
-- call `init_stopwatch` to initialize the appropriate structures
-- call `start_stopwatch` to start the monotonic clock
-- to measure the performance of the function `foo`:
+- call `init_event_timers` to initialize the appropriate structures and start the monotonic event timers
+- wrap the function(s) to measure with the calls to `record_start_measurements` and `record_end_measurements`
+- call `destroy_event_timers` to clean up the resources used
+
+Example of measuring the performance of `foo`:
 ```c
-read_stopwatch(start_reading);
+init_event_timers();
+record_start_measurements(<foo_call_num>, "foo", 0);
 foo();
-read_stopwatch(end_reading);
+record_end_measurements(<foos_call_num>);
+destroy_event_timers();
 ```
-where `start_reading` is of type `StopwatchReadings` and holds the state of the monotonic clock before `foo` executes and
-`end_reading` is also of type `StopwatchReadings` which holds the state of the monotonic clock after `foo` is done executing.
-The difference would be the actual value of `foo`'s performance.
