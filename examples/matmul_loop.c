@@ -16,9 +16,8 @@ int main() {
     int N = 500;
     int itercount = 10;
 
-    // Structures for holding measurements
-    struct StopwatchReadings row_major_total = create_stopwatch_readings();
-    struct StopwatchReadings row_major_single = create_stopwatch_readings();
+    // Structure for results
+    struct MeasurementResult result;
 
     // Allocate the A, B, and C arrays on the heap.
     // See https://stackoverflow.com/questions/10116368/heap-allocate-a-2d-array-not-array-of-pointers
@@ -38,7 +37,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(&row_major_total) != STOPWATCH_OK) {
+    if (record_start_measurements(1, "total-loop", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       exit(-1);
     }
@@ -48,7 +47,7 @@ int main() {
       memset(C, 0, sizeof(float) * N * N);
 
       // read start time
-      if (record_start_measurements(&row_major_single) != STOPWATCH_OK) {
+      if (record_start_measurements(2, "single-cycle", 1) != STOPWATCH_OK) {
         printf("Error reading measurements\n");
         exit(-1);
       }
@@ -56,13 +55,13 @@ int main() {
       row_major(N, A, B, C);
 
       // read end time
-      if (record_end_measurements(&row_major_single) != STOPWATCH_OK) {
+      if (record_end_measurements(2) != STOPWATCH_OK) {
         printf("Error reading measurements\n");
         exit(-1);
       }
     }
 
-    if (record_end_measurements(&row_major_total) != 0) {
+    if (record_end_measurements(1) != 0) {
       printf("Error reading measurements\n");
       exit(-1);
     }
@@ -71,11 +70,12 @@ int main() {
     free(B);
     free(C);
 
-    printf("%d iterations of %dx%d row major matrix multiplication\n", itercount, N, N);
-    printf("Total loop measurements\n");
-    print_results(&row_major_total);
-    printf("Accumulated cycles measurements\n");
-    print_results(&row_major_single);
+    get_measurement_results(1, &result);
+    print_measurement_results(&result);
+    printf("\n");
+
+    get_measurement_results(2, &result);
+    print_measurement_results(&result);
   }
 
   if (destroy_event_timers() != STOPWATCH_OK) {

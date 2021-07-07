@@ -30,6 +30,8 @@ int main() {
   int N = 1000; // Number of rows/columns in matrix to multiply
   int itercount = 1; // Number of iterations for timing
 
+  struct MeasurementResult result; // structure to hold the results
+
   if (init_event_timers() != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     return -1;
@@ -37,9 +39,6 @@ int main() {
 
   // Conventional, row-major multiplication, A*B = C
   {
-    // Structures to hold measurement values
-    struct StopwatchReadings row_major_read = create_stopwatch_readings();
-
     // Allocate the A, B, and C arrays on the heap.
     // See https://stackoverflow.com/questions/10116368/heap-allocate-a-2d-array-not-array-of-pointers
     // for the syntax; C is not exactly the nicest language for N-dimension arrays
@@ -58,7 +57,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(&row_major_read) != STOPWATCH_OK) {
+    if (record_start_measurements(1, "row-major", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -71,7 +70,7 @@ int main() {
       row_major(N, A, B, C);
     }
 
-    if (record_end_measurements(&row_major_read) != STOPWATCH_OK) {
+    if (record_end_measurements(1) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -80,13 +79,13 @@ int main() {
     free(B);
     free(C);
 
-    printf("%d iterations of %dx%d row major matrix multiplication\n", itercount, N, N);
-    print_results(&row_major_read);
+    get_measurement_results(1, &result);
+    print_measurement_results(&result);
+    printf("\n");
   }
 
   // Conventional, column-major multiplication, A*B = C
   {
-    struct StopwatchReadings col_major_read = create_stopwatch_readings();
     // Allocate the A, B, and C arrays on the heap.
     // Note that the meaning of each index is reversed from the row-major version above, but this
     // does not change the memory allocations since the matrices are square.
@@ -106,7 +105,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(&col_major_read) != STOPWATCH_OK) {
+    if (record_start_measurements(2, "col-major", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -119,7 +118,7 @@ int main() {
       column_major(N, A, B, C);
     }
 
-    if (record_end_measurements(&col_major_read) != STOPWATCH_OK) {
+    if (record_end_measurements(2) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -129,15 +128,15 @@ int main() {
     free(B);
     free(C);
 
-    printf("%d iterations of %dx%d column major matrix multiplication\n", itercount, N, N);
-    print_results(&col_major_read);
+    get_measurement_results(2, &result);
+    print_measurement_results(&result);
+    printf("\n");
   }
 
   // "Pointer-major" multiplication
   // Some C tutorials recommend allocating 2D arrays as a 1D array of 1D arrays (an array of pointers).
   // This example demonstrates the performance impact
   {
-    struct StopwatchReadings pointer_major_read = create_stopwatch_readings();
     // Allocate the A, B, and C arrays as an array of pointers.  Note that this differs from the previous
     // example only via punctuation, which is a syntactic wart of C
     float *A[N], *B[N], *C[N];
@@ -158,7 +157,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(&pointer_major_read) != STOPWATCH_OK) {
+    if (record_start_measurements(3, "pointer-major", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -173,7 +172,7 @@ int main() {
       pointer_major(N, A, B, C);
     }
 
-    if (record_end_measurements(&pointer_major_read) != STOPWATCH_OK) {
+    if (record_end_measurements(3) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -184,14 +183,13 @@ int main() {
       free(B[i]);
       free(C[i]);
     }
-
-    printf("%d iterations of %dx%d pointer major matrix multiplication\n", itercount, N, N);
-    print_results(&pointer_major_read);
+    get_measurement_results(3, &result);
+    print_measurement_results(&result);
+    printf("\n");
   }
 
   // Cache-oblivious matrix multiplication; as row-major, but using the cache-oblivious multiplier
   {
-    struct StopwatchReadings cache_obs_read = create_stopwatch_readings();
     // Allocate the A, B, and C arrays on the heap.
     float (*A)[N], (*B)[N], (*C)[N];
 
@@ -208,7 +206,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(&cache_obs_read) != STOPWATCH_OK) {
+    if (record_start_measurements(4, "cache-oblivious", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -221,7 +219,7 @@ int main() {
       cache_oblivious(N, A, B, C);
     }
 
-    if (record_end_measurements(&cache_obs_read) != STOPWATCH_OK) {
+    if (record_end_measurements(4) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -230,9 +228,8 @@ int main() {
     free(A);
     free(B);
     free(C);
-
-    printf("%d iterations of %dx%d cache oblivious matrix multiplication\n", itercount, N, N);
-    print_results(&cache_obs_read);
+    get_measurement_results(4, &result);
+    print_measurement_results(&result);
   }
 
   destroy_event_timers();

@@ -1,27 +1,29 @@
 #ifndef STOPWATCH_STOPWATCH_H
 #define STOPWATCH_STOPWATCH_H
 
+// Function status constants
 #define STOPWATCH_OK 0
 #define STOPWATCH_ERR -1
 
-// Structure used to hold readings from the measurement clock.
-struct StopwatchReadings {
+#define MAX_ROUTINE_NAME_LEN 16
+
+// =====================================================================================================================
+// Structure to hold results
+// =====================================================================================================================
+struct MeasurementResult {
   long long total_real_cyc;
   long long total_real_usec;
   long long total_l1_misses;
   long long total_cyc_wait_resource;
 
   long long total_times_called;
-
-  long long start_real_cyc;
-  long long start_real_usec;
-  long long start_l1_misses;
-  long long start_cyc_wait_resource;
+  char routine_name[MAX_ROUTINE_NAME_LEN];
+  unsigned int stack_depth;
 };
 
-//======================================================================================================================
+// =====================================================================================================================
 // Monotonic clock initialization and destruction
-//======================================================================================================================
+// =====================================================================================================================
 
 // Initializes the event timers. Currently the events that are measured are hard coded. This will also start the
 // monotonic measurement clock as currently it is assumed that consumers would immediately start the clock after
@@ -32,22 +34,21 @@ int init_event_timers();
 // memory leak with the PAPI specific resources
 int destroy_event_timers();
 
-// Creates a stopwatch reading with default values
-struct StopwatchReadings create_stopwatch_readings();
-
-//======================================================================================================================
-// Operations on StopwatchReadings
-//======================================================================================================================
+// =====================================================================================================================
+// Operations
+// =====================================================================================================================
 
 // Records the current values on the monotonic event timers
-int record_start_measurements(struct StopwatchReadings* readings);
+int record_start_measurements(int routine_call_num, const char* function_name, unsigned int stack_depth);
 
 // Records the current values on the monotonic event timers. Will also perform a delta between the values recorded from
 // `record_start_measurements` and the current values to give a measurement on the profile on the procedure executing
 // between the calls of `record_start_measurements` and `record_end_measurements`
-int record_end_measurements(struct StopwatchReadings* readings);
+int record_end_measurements(int routine_call_num);
+
+int get_measurement_results(unsigned int routine_call_num, struct MeasurementResult* result);
 
 // Prints out the results
-void print_results(struct StopwatchReadings *readings);
+void print_measurement_results(struct MeasurementResult* result);
 
 #endif //STOPWATCH_STOPWATCH_H

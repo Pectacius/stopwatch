@@ -1,31 +1,67 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "stopwatch/stopwatch.h"
-#include "papi.h"
+#include <papi.h>
 
-#define NUM_OF_EVENTS 2
-
+// Flag to signal initialization
 static int initialized_stopwatch = 0;
 
+// =====================================================================================================================
+// PAPI specific variables
+// =====================================================================================================================
+#define NUM_OF_EVENTS 2
 static int events[NUM_OF_EVENTS] = {PAPI_L1_TCM, PAPI_RES_STL};
 static int event_set = PAPI_NULL;
-
 static long long results[NUM_OF_EVENTS] = {0, 0};
 
-static int start_stopwatch() {
-  int PAPI_ret = PAPI_start(event_set);
-  if (PAPI_ret != PAPI_OK) {
-    return -1;
-  }
-  return 0;
-}
+// =====================================================================================================================
+// Structure used to hold readings from the measurement clock.
+// =====================================================================================================================
+
+// Think there might be an extra 4 byte padding for alignment reasons
+struct MeasurementReadings {
+  long long total_real_cyc;
+  long long total_real_usec;
+  long long total_l1_misses;
+  long long total_cyc_wait_resource;
+
+  long long total_times_called;
+
+  long long start_real_cyc;
+  long long start_real_usec;
+  long long start_l1_misses;
+  long long start_cyc_wait_resource;
+
+  char routine_name[MAX_ROUTINE_NAME_LEN];
+  unsigned int stack_depth;
+};
+
+#define STOPWATCH_MAX_FUNCTION_CALLS 500
+static struct MeasurementReadings readings[STOPWATCH_MAX_FUNCTION_CALLS];
+
+// =====================================================================================================================
+// Operations
+// =====================================================================================================================
 
 // Initializes PAPI library. Should only be called once.
-// Will return 0 if successful
-// Will return -1 if fail
+// Will return STOPWATCH_OK if successful
+// Will return STOPWATCH_ERR if fail
 int init_event_timers() {
   // Check if stopwatch is not already initialized
   if (!initialized_stopwatch) {
+    // Reset the values in readings with the default values
+    for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
+      readings[idx].total_real_cyc = 0;
+      readings[idx].total_real_usec = 0;
+      readings[idx].total_l1_misses = 0;
+      readings[idx].total_cyc_wait_resource = 0;
+
+      readings[idx].total_times_called = 0;
+      readings[idx].stack_depth = 0;
+      memset(&readings[idx].routine_name, 0, sizeof(readings[idx].routine_name));
+    }
+
     int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
     if (ret_val != PAPI_VER_CURRENT) {
       return STOPWATCH_ERR;
@@ -42,30 +78,21 @@ int init_event_timers() {
     }
 
     // Start the monotonic clock
-    ret_val = start_stopwatch();
+    ret_val = PAPI_start(event_set);
+    if (ret_val != PAPI_OK) {
+      return STOPWATCH_ERR;
+    }
 
     initialized_stopwatch = 1;
 
-    // Since start_stopwatch is the last function being executed, its success or error can then be propagated to the
-    // caller of init_stopwatch. If start_stopwatch errors out, then init_stopwatch has not been successfully executed.
-    // If start_stopwatch is successful, and since there are no other functions being called, start_stopwatch's success
-    // is the same as init_stopwatch's success.
-    return ret_val;
+    return STOPWATCH_OK;
   }
   return STOPWATCH_ERR;
 }
 
-static int stop_stopwatch() {
-  int PAPI_ret = PAPI_stop(event_set, results);
-  if (PAPI_ret != PAPI_OK) {
-    return -1;
-  }
-  return 0;
-}
-
 int destroy_event_timers() {
-  int ret_val = stop_stopwatch();
-  if (ret_val != 0) {
+  int ret_val = PAPI_stop(event_set, results);
+  if (ret_val != PAPI_OK) {
     return STOPWATCH_ERR;
   }
 
@@ -85,45 +112,68 @@ int destroy_event_timers() {
   return STOPWATCH_OK;
 }
 
-struct StopwatchReadings create_stopwatch_readings() {
-  struct StopwatchReadings default_val = {0,0,0,0, 0, 0,0,0,0};
-  return default_val;
-}
-
-int record_start_measurements(struct StopwatchReadings* readings) {
+int record_start_measurements(int routine_call_num, const char *function_name, unsigned int stack_depth) {
   int PAPI_ret = PAPI_read(event_set, results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
-  readings->start_real_cyc = PAPI_get_real_cyc();
-  readings->start_real_usec = PAPI_get_real_usec();
-  readings->start_l1_misses = results[0];
-  readings->start_cyc_wait_resource = results[1];
+  readings[routine_call_num].start_real_cyc = PAPI_get_real_cyc();
+  readings[routine_call_num].start_real_usec = PAPI_get_real_usec();
+  readings[routine_call_num].start_l1_misses = results[0];
+  readings[routine_call_num].start_cyc_wait_resource = results[1];
+
+  // Only log these values the first time it is called as there is a possibility of nesting.
+  if (readings[routine_call_num].total_times_called == 0) {
+    readings[routine_call_num].stack_depth = stack_depth;
+
+    // Copy in the routine name and ensure the string is null terminated
+    strncpy(readings[routine_call_num].routine_name, function_name, MAX_ROUTINE_NAME_LEN);
+    readings[routine_call_num].routine_name[MAX_ROUTINE_NAME_LEN - 1] = '\0';
+  }
 
   return STOPWATCH_OK;
 }
 
-int record_end_measurements(struct StopwatchReadings* readings) {
+int record_end_measurements(int routine_call_num) {
   int PAPI_ret = PAPI_read(event_set, results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
 
-  readings->total_times_called++;
+  readings[routine_call_num].total_times_called++;
 
-  readings->total_real_cyc += (PAPI_get_real_cyc() - readings->start_real_cyc);
-  readings->total_real_usec +=  (PAPI_get_real_usec() - readings->start_real_usec);
-  readings->total_l1_misses += (results[0] - readings->start_l1_misses);
-  readings->total_cyc_wait_resource += (results[1] - readings->start_cyc_wait_resource);
+  readings[routine_call_num].total_real_cyc += (PAPI_get_real_cyc() - readings[routine_call_num].start_real_cyc);
+  readings[routine_call_num].total_real_usec += (PAPI_get_real_usec() - readings[routine_call_num].start_real_usec);
+  readings[routine_call_num].total_l1_misses += (results[0] - readings[routine_call_num].start_l1_misses);
+  readings[routine_call_num].total_cyc_wait_resource +=
+      (results[1] - readings[routine_call_num].start_cyc_wait_resource);
 
   return STOPWATCH_OK;
 }
 
-void print_results(struct StopwatchReadings *readings) {
-  printf("Total times run: %lld\n", readings->total_times_called);
-  printf("L1 cache misses: %lld\n", readings->total_l1_misses);
-  printf("Cycles waiting for resources: %lld\n", readings->total_cyc_wait_resource);
+void print_measurement_results(struct MeasurementResult* result) {
+  printf("Procedure name: %s\n", result->routine_name);
+  printf("Total times run: %lld\n", result->total_times_called);
+  printf("Total real cycles elapsed: %lld\n", result->total_real_cyc);
+  printf("Total real microseconds elapsed: %lld\n", result->total_real_usec);
+  printf("Total L1 cache misses: %lld\n", result->total_l1_misses);
+  printf("Total cycles waiting for resources: %lld\n", result->total_cyc_wait_resource);
+}
 
-  printf("Total real cycles elapsed: %lld\n", readings->total_real_cyc);
-  printf("Total real microseconds elapsed: %lld\n\n", readings->total_real_usec);
+int get_measurement_results(unsigned int routine_call_num, struct MeasurementResult* result) {
+  if (routine_call_num >= STOPWATCH_MAX_FUNCTION_CALLS) {
+    return STOPWATCH_ERR;
+  }
+  result->total_real_cyc = readings[routine_call_num].total_real_cyc;
+  result->total_real_usec = readings[routine_call_num].total_real_usec;
+  result->total_l1_misses = readings[routine_call_num].total_l1_misses;
+  result->total_cyc_wait_resource = readings[routine_call_num].total_cyc_wait_resource;
+
+  result->total_times_called = readings[routine_call_num].total_times_called;
+  result->stack_depth = readings[routine_call_num].stack_depth;
+
+  // String already null terminated
+  strncpy(result->routine_name, readings[routine_call_num].routine_name, MAX_ROUTINE_NAME_LEN);
+
+  return STOPWATCH_OK;
 }
