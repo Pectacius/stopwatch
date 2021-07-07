@@ -2,15 +2,12 @@
 // Simple way to unittest with only using asserts
 // Currently there is a subtle issue where each test is not isolated from each other.
 #include "stopwatch/stopwatch.h"
-#include "mat_mul.h"
+#include "math_fun_test_util.h"
+#include "assertion_util.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
-double relative_error(long long val1, long long val2) {
-  return fabs((double) (val1 - val2) / (double) val1);
-}
 
 // Initialize and destroy the event timers once
 void test_stopwatch_setup_teardown() {

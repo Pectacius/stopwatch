@@ -103,7 +103,7 @@ export(PACKAGE Stopwatch)
 include(CTest)
 
 if (BUILD_TESTING)
-    add_executable(stopwatch_unittests "test/stopwatch_tests.c" "test/mat_mul.h")
+    add_executable(stopwatch_unittests "test/stopwatch_tests.c" "test/math_fun_test_util.h" "test/assertion_util.h")
     target_link_libraries(stopwatch_unittests stopwatch)
 
     add_test(stopwatch_tests stopwatch_unittests)
