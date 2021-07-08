@@ -5,7 +5,7 @@
 #define STOPWATCH_OK 0
 #define STOPWATCH_ERR -1
 
-#define MAX_ROUTINE_NAME_LEN 16
+#define NULL_TERM_MAX_ROUTINE_NAME_LEN 16
 
 // =====================================================================================================================
 // Structure to hold results
@@ -17,7 +17,7 @@ struct MeasurementResult {
   long long total_cyc_wait_resource;
 
   long long total_times_called;
-  char routine_name[MAX_ROUTINE_NAME_LEN];
+  char routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN];
   unsigned int stack_depth;
 };
 
@@ -50,5 +50,8 @@ int get_measurement_results(unsigned int routine_call_num, struct MeasurementRes
 
 // Prints out the results
 void print_measurement_results(struct MeasurementResult* result);
+
+// Generates a table as a pretty printed string
+void print_result_table();
 
 #endif //STOPWATCH_STOPWATCH_H

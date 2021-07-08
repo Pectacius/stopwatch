@@ -76,6 +76,9 @@ int main() {
 
     get_measurement_results(2, &result);
     print_measurement_results(&result);
+
+    printf("\n");
+    print_result_table();
   }
 
   if (destroy_event_timers() != STOPWATCH_OK) {

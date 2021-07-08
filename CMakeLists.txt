@@ -23,6 +23,8 @@ find_package(PAPI REQUIRED)
 add_library(stopwatch
         src/stopwatch.c
         include/stopwatch/stopwatch.h
+        src/str_table.c
+        src/str_table.h
         )
 
 # Consumers of this library are going to need its public headers but not the PAPI headers
@@ -35,6 +37,7 @@ target_include_directories(stopwatch
 target_link_libraries(stopwatch
         PRIVATE
         PAPI::PAPI
+        m
         )
 
 # Build examples from the example directory

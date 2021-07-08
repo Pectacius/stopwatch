@@ -231,7 +231,7 @@ int main() {
     get_measurement_results(4, &result);
     print_measurement_results(&result);
   }
-
+  print_result_table();
   destroy_event_timers();
 
   return 0;
