@@ -221,82 +221,40 @@ static void print_n_whitespace(unsigned int n) {
 void print_result_table() {
   // Generate table
   const unsigned int columns = 7;
-  const unsigned int rows = find_num_entries() + 1; // One extra for header
+  const unsigned int rows = find_num_entries();
 
-  struct StringTable *table = create_table(columns, rows, STR_TABLE_LABEL_TRUE);
+  struct StringTable *table = create_table(columns, rows, true, 4);
 
-  add_entry(table, "ID", 0, 0);
-  add_entry(table, "NAME", 0, 1);
-  add_entry(table, "TIMES CALLED", 0, 2);
-  add_entry(table, "TOTAL REAL CYCLES", 0, 3);
-  add_entry(table, "TOTAL REAL MICROSECONDS", 0, 4);
-  add_entry(table, "TOTAL L1 CACHE MISSES", 0, 5);
-  add_entry(table, "TOTAL CYCLES WAITING FOR RESOURCES", 0, 6);
+  add_entry_str(table, "ID", 0, 0);
+  add_entry_str(table, "NAME", 0, 1);
+  add_entry_str(table, "TIMES CALLED", 0, 2);
+  add_entry_str(table, "TOTAL REAL CYCLES", 0, 3);
+  add_entry_str(table, "TOTAL REAL MICROSECONDS", 0, 4);
+  add_entry_str(table, "TOTAL L1 CACHE MISSES", 0, 5);
+  add_entry_str(table, "TOTAL CYCLES WAITING FOR RESOURCES", 0, 6);
 
   unsigned int row_cursor = 1;
   for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
     if (readings[idx].total_times_called == 0) {
       continue;
     }
-    add_lld_entry(table, idx, row_cursor, 0);
-    add_entry(table, readings[idx].routine_name, row_cursor, 1);
-    add_lld_entry(table, readings[idx].total_times_called, row_cursor, 2);
-    add_lld_entry(table, readings[idx].total_real_cyc, row_cursor, 3);
-    add_lld_entry(table, readings[idx].total_real_usec, row_cursor, 4);
-    add_lld_entry(table, readings[idx].total_l1_misses, row_cursor, 5);
-    add_lld_entry(table, readings[idx].total_cyc_wait_resource, row_cursor, 6);
+    add_entry_lld(table, idx, row_cursor, 0);
+
+    add_entry_str(table, readings[idx].routine_name, row_cursor, 1);
+    set_indent_lvl(table, readings[idx].stack_depth, row_cursor, 1);
+
+    add_entry_lld(table, readings[idx].total_times_called, row_cursor, 2);
+    add_entry_lld(table, readings[idx].total_real_cyc, row_cursor, 3);
+    add_entry_lld(table, readings[idx].total_real_usec, row_cursor, 4);
+    add_entry_lld(table, readings[idx].total_l1_misses, row_cursor, 5);
+    add_entry_lld(table, readings[idx].total_cyc_wait_resource, row_cursor, 6);
 
     row_cursor++;
   }
 
-
   // Format print table
-  unsigned int *col_widths = malloc(sizeof(unsigned int) * columns);
-  const unsigned int max_stack_depth = find_max_stack_depth();
-
-  for (unsigned int col = 0; col < columns; col++) {
-    if (col == 1) {
-      col_widths[col] = NULL_TERM_MAX_ROUTINE_NAME_LEN + INDENT_SPACING * max_stack_depth;
-    } else {
-      col_widths[col] = longest_str_len_col(table, col);
-    }
-  }
-
-  //Print headers
-  for(unsigned int col_cursor = 0; col_cursor < columns; col_cursor++) {
-    char *curr_entry = get_entry(table, 0, col_cursor);
-    printf("| ");
-    printf("%s", curr_entry);
-    unsigned int num_blanks = col_widths[col_cursor] - strlen(curr_entry) + 1;
-    print_n_whitespace(num_blanks);
-    free(curr_entry);
-  }
-  printf("|\n");
-
-  unsigned int curr_row_cursor = 1;
-  for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
-    if (readings[idx].total_times_called == 0) {
-      continue;
-    }
-
-    for (unsigned int col_cursor = 0; col_cursor < columns; col_cursor++) {
-      char *curr_entry = get_entry(table, curr_row_cursor, col_cursor);
-      printf("| ");
-      if (col_cursor == 1) {
-        print_n_whitespace(readings[idx].stack_depth * INDENT_SPACING);
-        printf("%s", curr_entry);
-        print_n_whitespace(NULL_TERM_MAX_ROUTINE_NAME_LEN - strlen(curr_entry));
-        print_n_whitespace((max_stack_depth - readings[idx].stack_depth) * INDENT_SPACING + 1);
-      } else {
-        printf("%s", curr_entry);
-        unsigned int num_blanks = col_widths[col_cursor] - strlen(curr_entry) + 1;
-        print_n_whitespace(num_blanks);
-      }
-      free(curr_entry);
-    }
-    curr_row_cursor++;
-    printf("|\n");
-  }
-
+  char* table_str = make_table_str(table);
+  printf("%s\n", table_str);
+  free(table_str);
   destroy_table(table);
 }
