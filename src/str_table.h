@@ -6,8 +6,12 @@
 #define STR_TABLE_ERR -1
 #define STR_TABLE_OK 0
 
-#define STR_TABLE_LABEL_TRUE 1
-#define STR_TABLE_LABEL_FALSE 0
+// Structure for indicating table cell position. Much superior to adding row and column to function arguments as it is
+// very easy to mix / confuse them
+struct StringTableCellPos {
+  unsigned int row_num; // Row number zero indexed
+  unsigned int col_num; // Column number zero indexed
+};
 
 struct StringTable {
   char **contents;              // Contents of each cell in table
@@ -25,11 +29,11 @@ int destroy_table(struct StringTable *table);
 
 // Is non-owning of the variable `value`. The caller may allocate the variable `value` but calling this function will
 // not transfer the ownership implying that the caller will still need to handle the lifetime of the variable `value`.
-int add_entry_str(const struct StringTable *table, const char *value, unsigned int row_num, unsigned int  col_num);
+int add_entry_str(const struct StringTable *table, const char *value, struct StringTableCellPos pos);
 
-int add_entry_lld(const struct StringTable *table, long long value, unsigned int row_num, unsigned int col_num);
+int add_entry_lld(const struct StringTable *table, long long value, struct StringTableCellPos pos);
 
-int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, unsigned int row_num, unsigned int col_num);
+int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, struct StringTableCellPos pos);
 
 char *make_table_str(const struct StringTable *table);
 

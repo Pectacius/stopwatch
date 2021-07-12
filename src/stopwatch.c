@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,13 +7,15 @@
 #include "str_table.h"
 #include <papi.h>
 
+#define NUM_OF_EVENTS 2
+#define INDENT_SPACING 4
+
 // Flag to signal initialization
-static int initialized_stopwatch = 0;
+static bool initialized_stopwatch = false;
 
 // =====================================================================================================================
 // PAPI specific variables
 // =====================================================================================================================
-#define NUM_OF_EVENTS 2
 static int events[NUM_OF_EVENTS] = {PAPI_L1_TCM, PAPI_RES_STL};
 static int event_set = PAPI_NULL;
 static long long results[NUM_OF_EVENTS] = {0, 0};
@@ -85,7 +88,7 @@ int init_event_timers() {
       return STOPWATCH_ERR;
     }
 
-    initialized_stopwatch = 1;
+    initialized_stopwatch = true;
 
     return STOPWATCH_OK;
   }
@@ -109,7 +112,7 @@ int destroy_event_timers() {
 
   PAPI_shutdown();
 
-  initialized_stopwatch = 0;
+  initialized_stopwatch = false;
 
   return STOPWATCH_OK;
 }
@@ -167,10 +170,6 @@ int get_measurement_results(unsigned int routine_call_num, struct MeasurementRes
     return STOPWATCH_ERR;
   }
 
-  if (!initialized_stopwatch) {
-    return STOPWATCH_ERR;
-  }
-
   result->total_real_cyc = readings[routine_call_num].total_real_cyc;
   result->total_real_usec = readings[routine_call_num].total_real_usec;
   result->total_l1_misses = readings[routine_call_num].total_l1_misses;
@@ -188,19 +187,6 @@ int get_measurement_results(unsigned int routine_call_num, struct MeasurementRes
 // =====================================================================================================================
 // Print results into a formatted table
 // =====================================================================================================================
-#define INDENT_SPACING 4
-
-static unsigned int find_max_stack_depth() {
-  unsigned int max_depth = 0;
-
-  for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
-    if (readings[idx].stack_depth > max_depth) {
-      max_depth = readings[idx].stack_depth;
-    }
-  }
-
-  return max_depth;
-}
 
 static unsigned int find_num_entries() {
   unsigned int entries = 0;
@@ -212,42 +198,36 @@ static unsigned int find_num_entries() {
   return entries;
 }
 
-static void print_n_whitespace(unsigned int n) {
-  for (unsigned int count = 0; count < n; count++) {
-    printf(" ");
-  }
-}
-
 void print_result_table() {
   // Generate table
   const unsigned int columns = 7;
-  const unsigned int rows = find_num_entries();
+  const unsigned int rows = find_num_entries() + 1; // Extra row for header
 
-  struct StringTable *table = create_table(columns, rows, true, 4);
+  struct StringTable *table = create_table(columns, rows, true, INDENT_SPACING);
 
-  add_entry_str(table, "ID", 0, 0);
-  add_entry_str(table, "NAME", 0, 1);
-  add_entry_str(table, "TIMES CALLED", 0, 2);
-  add_entry_str(table, "TOTAL REAL CYCLES", 0, 3);
-  add_entry_str(table, "TOTAL REAL MICROSECONDS", 0, 4);
-  add_entry_str(table, "TOTAL L1 CACHE MISSES", 0, 5);
-  add_entry_str(table, "TOTAL CYCLES WAITING FOR RESOURCES", 0, 6);
+  add_entry_str(table, "ID", (struct StringTableCellPos){0, 0});
+  add_entry_str(table, "NAME", (struct StringTableCellPos){0, 1});
+  add_entry_str(table, "TIMES CALLED", (struct StringTableCellPos){0, 2});
+  add_entry_str(table, "TOTAL REAL CYCLES", (struct StringTableCellPos){0, 3});
+  add_entry_str(table, "TOTAL REAL MICROSECONDS", (struct StringTableCellPos){0, 4});
+  add_entry_str(table, "TOTAL L1 CACHE MISSES", (struct StringTableCellPos){0, 5});
+  add_entry_str(table, "TOTAL CYCLES WAITING FOR RESOURCES", (struct StringTableCellPos){0, 6});
 
   unsigned int row_cursor = 1;
   for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
     if (readings[idx].total_times_called == 0) {
       continue;
     }
-    add_entry_lld(table, idx, row_cursor, 0);
+    add_entry_lld(table, idx, (struct StringTableCellPos){row_cursor, 0});
 
-    add_entry_str(table, readings[idx].routine_name, row_cursor, 1);
-    set_indent_lvl(table, readings[idx].stack_depth, row_cursor, 1);
+    add_entry_str(table, readings[idx].routine_name, (struct StringTableCellPos){row_cursor, 1});
+    set_indent_lvl(table, readings[idx].stack_depth, (struct StringTableCellPos){row_cursor, 1});
 
-    add_entry_lld(table, readings[idx].total_times_called, row_cursor, 2);
-    add_entry_lld(table, readings[idx].total_real_cyc, row_cursor, 3);
-    add_entry_lld(table, readings[idx].total_real_usec, row_cursor, 4);
-    add_entry_lld(table, readings[idx].total_l1_misses, row_cursor, 5);
-    add_entry_lld(table, readings[idx].total_cyc_wait_resource, row_cursor, 6);
+    add_entry_lld(table, readings[idx].total_times_called, (struct StringTableCellPos){row_cursor, 2});
+    add_entry_lld(table, readings[idx].total_real_cyc, (struct StringTableCellPos){row_cursor, 3});
+    add_entry_lld(table, readings[idx].total_real_usec, (struct StringTableCellPos){row_cursor, 4});
+    add_entry_lld(table, readings[idx].total_l1_misses, (struct StringTableCellPos){row_cursor, 5});
+    add_entry_lld(table, readings[idx].total_cyc_wait_resource, (struct StringTableCellPos){row_cursor, 6});
 
     row_cursor++;
   }

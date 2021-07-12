@@ -28,10 +28,6 @@ struct StringTable *create_table(unsigned int width,
   new_table->height = height;
   new_table->has_header = has_header;
 
-  if (has_header) {
-    new_table->height++; // Extra row for header
-  }
-
   new_table->total_entries = new_table->width * new_table->height;
 
   new_table->contents = calloc(new_table->total_entries, sizeof(char *));
@@ -64,7 +60,7 @@ int destroy_table(struct StringTable *table) {
   return STR_TABLE_OK;
 }
 
-int add_entry_str(const struct StringTable *table, const char *value, unsigned int row_num, unsigned int col_num) {
+int add_entry_str(const struct StringTable *table, const char *value, struct StringTableCellPos pos) {
   if (table == NULL) {
     return STR_TABLE_ERR;
   }
@@ -73,14 +69,14 @@ int add_entry_str(const struct StringTable *table, const char *value, unsigned i
     return STR_TABLE_ERR;
   }
 
-  if (col_num >= table->width) {
+  if (pos.col_num >= table->width) {
     return STR_TABLE_ERR;
   }
-  if (row_num >= table->height) {
+  if (pos.row_num >= table->height) {
     return STR_TABLE_ERR;
   }
 
-  const unsigned int effective_idx = row_num * table->width + col_num;
+  const unsigned int effective_idx = pos.row_num * table->width + pos.col_num;
 
   if (table->contents[effective_idx] != NULL) {
     free(table->contents[effective_idx]);
@@ -90,17 +86,17 @@ int add_entry_str(const struct StringTable *table, const char *value, unsigned i
   return STR_TABLE_OK;
 }
 
-int add_entry_lld(const struct StringTable *table, long long value, unsigned int row_num, unsigned int col_num) {
+int add_entry_lld(const struct StringTable *table, long long value, struct StringTableCellPos pos) {
   unsigned int num_digits = (int) (log10((double) value)) + 1;
 
   char *num_str = malloc(sizeof(char) * (num_digits + 1)); // Extra value for the null terminator
   sprintf(num_str, "%lld", value);
-  add_entry_str(table, num_str, row_num, col_num);
+  add_entry_str(table, num_str, pos);
   free(num_str);
   return STR_TABLE_OK;
 }
 
-int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, unsigned int row_num, unsigned int col_num) {
+int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, struct StringTableCellPos pos) {
   if (table == NULL) {
     return STR_TABLE_ERR;
   }
@@ -109,15 +105,15 @@ int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, uns
     return STR_TABLE_ERR;
   }
 
-  if (col_num >= table->width) {
+  if (pos.col_num >= table->width) {
     return STR_TABLE_ERR;
   }
 
-  if (row_num >= table->height) {
+  if (pos.row_num >= table->height) {
     return STR_TABLE_ERR;
   }
 
-  const unsigned int effective_idx = row_num * table->width + col_num;
+  const unsigned int effective_idx = pos.row_num * table->width + pos.col_num;
 
   table->indent_levels[effective_idx] = indent_lvl;
   return STR_TABLE_OK;

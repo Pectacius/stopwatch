@@ -47,6 +47,8 @@ if (BUILD_EXAMPLES)
     add_subdirectory("examples")
 endif ()
 
+option(ADDRESS_SANITIZE "Enable Address Sanitizer" OFF)
+
 #=======================================================================================================================
 # Installation
 #=======================================================================================================================
@@ -109,5 +111,14 @@ if (BUILD_TESTING)
     add_executable(stopwatch_unittests "test/stopwatch_tests.c" "test/math_fun_test_util.h" "test/assertion_util.h")
     target_link_libraries(stopwatch_unittests stopwatch)
 
+    add_executable(print_table_unittests "test/print_table_tests.c")
+    target_link_libraries(print_table_unittests stopwatch)
+
+    if (ADDRESS_SANITIZE)
+        target_compile_options(print_table_unittests PRIVATE -fsanitize=address)
+        target_link_options(print_table_unittests PRIVATE -fsanitize=address)
+    endif ()
+
     add_test(stopwatch_tests stopwatch_unittests)
+    add_test(print_table_tests print_table_unittests)
 endif ()
