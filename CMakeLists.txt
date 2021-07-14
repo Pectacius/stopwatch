@@ -1,4 +1,3 @@
-# GEM is setting this as minimum version
 cmake_minimum_required(VERSION 2.8.12)
 
 project(libstopwatch LANGUAGES C)
@@ -47,7 +46,7 @@ if (BUILD_EXAMPLES)
     add_subdirectory("examples")
 endif ()
 
-option(ADDRESS_SANITIZE "Enable Address Sanitizer" OFF)
+add_subdirectory("test")
 
 #=======================================================================================================================
 # Installation
@@ -101,24 +100,3 @@ export(EXPORT stopwatch-targets
 # Register package in the User Package Registry
 #=======================================================================================================================
 export(PACKAGE Stopwatch)
-
-# ======================================================================================================================
-# Building test suites
-# ======================================================================================================================
-include(CTest)
-
-if (BUILD_TESTING)
-    add_executable(stopwatch_unittests "test/stopwatch_tests.c" "test/math_fun_test_util.h" "test/assertion_util.h")
-    target_link_libraries(stopwatch_unittests stopwatch)
-
-    add_executable(print_table_unittests "test/print_table_tests.c")
-    target_link_libraries(print_table_unittests stopwatch)
-
-    if (ADDRESS_SANITIZE)
-        target_compile_options(print_table_unittests PRIVATE -fsanitize=address)
-        target_link_options(print_table_unittests PRIVATE -fsanitize=address)
-    endif ()
-
-    add_test(stopwatch_tests stopwatch_unittests)
-    add_test(print_table_tests print_table_unittests)
-endif ()

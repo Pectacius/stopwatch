@@ -1,7 +1,7 @@
 // Utility matrix multiplication functions to be used in stopwatch testing
 
-#ifndef LIBSTOPWATCH_TEST_MATH_FUN_TEST_UTIL_H_
-#define LIBSTOPWATCH_TEST_MATH_FUN_TEST_UTIL_H_
+#ifndef LIBSTOPWATCH_TEST_MATH_FUN_UTIL_H_
+#define LIBSTOPWATCH_TEST_MATH_FUN_UTIL_H_
 
 // Row major matrix multiplication
 void row_major(int N, float A[N][N], float B[N][N], float C[N][N]) {
@@ -15,4 +15,4 @@ void row_major(int N, float A[N][N], float B[N][N], float C[N][N]) {
   }
 }
 
-#endif //LIBSTOPWATCH_TEST_MATH_FUN_TEST_UTIL_H_
+#endif //LIBSTOPWATCH_TEST_MATH_FUN_UTIL_H_

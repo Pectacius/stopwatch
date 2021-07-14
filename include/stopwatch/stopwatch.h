@@ -5,6 +5,7 @@
 #define STOPWATCH_OK 0
 #define STOPWATCH_ERR (-1)
 
+#define STOPWATCH_MAX_EVENTS 10
 #define NULL_TERM_MAX_ROUTINE_NAME_LEN 16
 
 // =====================================================================================================================
@@ -28,12 +29,12 @@ enum StopwatchEvents {
 struct MeasurementResult {
   long long total_real_cyc;
   long long total_real_usec;
-  long long total_l1_misses;
-  long long total_cyc_wait_resource;
-
+  long long total_event_values[STOPWATCH_MAX_EVENTS];
   long long total_times_called;
   char routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN];
   unsigned int stack_depth;
+  unsigned int num_of_events;
+  int event_names[STOPWATCH_MAX_EVENTS];
 };
 
 // =====================================================================================================================

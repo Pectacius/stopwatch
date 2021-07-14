@@ -10,7 +10,6 @@
 #define STOPWATCH_INVALID_EVENT 1
 #define INDENT_SPACING 4
 #define STOPWATCH_NUM_TIMERS 2
-#define STOPWATCH_MAX_EVENTS 10
 #define STOPWATCH_MAX_FUNCTION_CALLS 500
 
 // Structure used to hold readings for the measurement clock.
@@ -69,7 +68,9 @@ int init_stopwatch(const enum StopwatchEvents events_to_add[], unsigned int num_
     // Reset the function names and times called to default values values
     for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
       readings[idx].total_times_called = 0;
-      memset(&readings[idx].routine_name, 0, sizeof(readings[idx].routine_name));
+      memset(readings[idx].total_events_measurements, 0, sizeof(readings[idx].total_events_measurements));
+      memset(readings[idx].total_timers_measurements, 0, sizeof(readings[idx].total_events_measurements));
+      memset(readings[idx].routine_name, 0, sizeof(readings[idx].routine_name));
     }
 
     // Reset number of registered events
@@ -175,19 +176,25 @@ void print_measurement_results(struct MeasurementResult *result) {
   printf("Total times run: %lld\n", result->total_times_called);
   printf("Total real cycles elapsed: %lld\n", result->total_real_cyc);
   printf("Total real microseconds elapsed: %lld\n", result->total_real_usec);
-  printf("Total L1 cache misses: %lld\n", result->total_l1_misses);
-  printf("Total cycles waiting for resources: %lld\n", result->total_cyc_wait_resource);
+  for(unsigned int idx = 0; idx < result->num_of_events; idx++) {
+    char event_code_string[PAPI_MAX_STR_LEN];
+    PAPI_event_code_to_name(result->event_names[idx], event_code_string);
+    printf("%s: %lld\n", event_code_string, result->total_event_values[idx]);
+  }
 }
 
 int get_measurement_results(unsigned int routine_call_num, struct MeasurementResult *result) {
-/*  if (routine_call_num >= STOPWATCH_MAX_FUNCTION_CALLS) {
+  if (routine_call_num >= STOPWATCH_MAX_FUNCTION_CALLS) {
     return STOPWATCH_ERR;
   }
 
-  result->total_real_cyc = readings[routine_call_num].total_real_cyc;
-  result->total_real_usec = readings[routine_call_num].total_real_usec;
-  result->total_l1_misses = readings[routine_call_num].total_l1_misses;
-  result->total_cyc_wait_resource = readings[routine_call_num].total_cyc_wait_resource;
+  result->total_real_cyc = readings[routine_call_num].total_timers_measurements[0];
+  result->total_real_usec = readings[routine_call_num].total_timers_measurements[1];
+  result->num_of_events = num_registered_events;
+  for(unsigned int idx = 0; idx < num_registered_events; idx++) {
+    result->total_event_values[idx] = readings[routine_call_num].total_events_measurements[idx];
+    result->event_names[idx] = events[idx];
+  }
 
   result->total_times_called = readings[routine_call_num].total_times_called;
   result->stack_depth = readings[routine_call_num].stack_depth;
@@ -195,7 +202,6 @@ int get_measurement_results(unsigned int routine_call_num, struct MeasurementRes
   // String already null terminated
   strncpy(result->routine_name, readings[routine_call_num].routine_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
 
-  */
   return STOPWATCH_OK;
 }
 
