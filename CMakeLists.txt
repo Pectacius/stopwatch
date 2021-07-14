@@ -20,6 +20,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 find_package(PAPI REQUIRED)
 
 add_library(stopwatch
+        SHARED
         src/stopwatch.c
         include/stopwatch/stopwatch.h
         src/str_table.c
