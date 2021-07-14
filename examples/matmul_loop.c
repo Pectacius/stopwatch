@@ -7,7 +7,8 @@
 void row_major(int N, float A[N][N], float B[N][N], float C[N][N]);
 
 int main() {
-  if (init_event_timers() != STOPWATCH_OK) {
+  const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS};
+  if (init_stopwatch(events, 2) != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     exit(-1);
   }
@@ -70,21 +71,10 @@ int main() {
     free(B);
     free(C);
 
-    get_measurement_results(1, &result);
-    print_measurement_results(&result);
-    printf("\n");
-
-    get_measurement_results(2, &result);
-    print_measurement_results(&result);
-
-    printf("\n");
     print_result_table();
   }
 
-  if (destroy_event_timers() != STOPWATCH_OK) {
-    printf("Error cleaning up stopwatch\n");
-    exit(-1);
-  }
+  destroy_stopwatch();
 }
 
 void row_major(int N, float A[N][N], float B[N][N], float C[N][N]) {

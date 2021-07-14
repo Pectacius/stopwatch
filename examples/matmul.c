@@ -32,7 +32,8 @@ int main() {
 
   struct MeasurementResult result; // structure to hold the results
 
-  if (init_event_timers() != STOPWATCH_OK) {
+  const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
+  if (init_stopwatch(events, 2) != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     return -1;
   }
@@ -79,9 +80,7 @@ int main() {
     free(B);
     free(C);
 
-    get_measurement_results(1, &result);
-    print_measurement_results(&result);
-    printf("\n");
+    printf("Completed row-major\n");
   }
 
   // Conventional, column-major multiplication, A*B = C
@@ -128,9 +127,7 @@ int main() {
     free(B);
     free(C);
 
-    get_measurement_results(2, &result);
-    print_measurement_results(&result);
-    printf("\n");
+    printf("Completed column-major\n");
   }
 
   // "Pointer-major" multiplication
@@ -183,9 +180,7 @@ int main() {
       free(B[i]);
       free(C[i]);
     }
-    get_measurement_results(3, &result);
-    print_measurement_results(&result);
-    printf("\n");
+    printf("Completed pointer major\n");
   }
 
   // Cache-oblivious matrix multiplication; as row-major, but using the cache-oblivious multiplier
@@ -228,11 +223,10 @@ int main() {
     free(A);
     free(B);
     free(C);
-    get_measurement_results(4, &result);
-    print_measurement_results(&result);
+    printf("Completed cache-oblivious\n");
   }
   print_result_table();
-  destroy_event_timers();
+  destroy_stopwatch();
 
   return 0;
 }
