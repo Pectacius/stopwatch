@@ -16,7 +16,9 @@ if (BUILD_TESTING)
 
     if (ADDRESS_SANITIZE)
         target_compile_options(print_table_unittests PRIVATE -fsanitize=address)
-        target_link_options(print_table_unittests PRIVATE -fsanitize=address)
+        target_link_libraries(print_table_unittests PRIVATE stopwatch -fsanitize=address)
+    else ()
+        target_link_libraries(print_table_unittests PRIVATE stopwatch)
     endif ()
 
     add_test(stopwatch_initializing_tests stopwatch_initializing_unittests)
