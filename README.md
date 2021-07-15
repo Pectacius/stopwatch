@@ -38,16 +38,16 @@ In the CMakeLists.txt add:
 - `target_link_libraries(target Stopwatch::Stopwatch)` to link with the library
 
 At the moment, the Stopwatch interface should be used like so:
-1. call `init_stopwatch` to initialize the appropriate structures and start the monotonic event timers. The events to be
+1. call `stopwatch_init` to initialize the appropriate structures and start the monotonic event timers. The events to be
    measured can be specified by passing in the desired events as an array in the `events_to_add` argument and also the
    array's length in the `num_of_events` argument.
-2. wrap the function(s) to measure with the calls to `record_start_measurements` and `record_end_measurements`
-3. call `destroy_stopwatch` to clean up the resources used
+2. wrap the function(s) to measure with the calls to `stopwatch_record_start_measurements` and `stopwatch_record_end_measurements`
+3. call `stopwatch_destroy` to clean up the resources used
 
 Example of measuring the performance of a loop of matrix multiplication:
 ```c
 const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS}; // Events to measure
-init_stopwatch(events, sizeof(StopwatchEvents)/ sizeof(enum StopwatchEvents)); // Initialize stopwatch
+stopwatch_init(events, sizeof(StopwatchEvents)/ sizeof(enum StopwatchEvents)); // Initialize stopwatch
 
 int N = 500; // Size of matrix
 int itercount = 10; // Number of iterations
@@ -57,16 +57,16 @@ float (*B)[N] = initialize_mat(N);
 float (*C)[N] = initialize_mat(N);
 
 // Matrix multiply loop
-record_start_measurements(1, "total-loop", 0); // Record start time of the entire loop
+stopwatch_record_start_measurements(1, "total-loop", 0); // Record start time of the entire loop
 for (int iter = 0; iter < itercount; iter++) {
   memset(C, 0, sizeof(float) * N * N); // clear C array
-  record_start_measurements(2, "single-cycle", 1); // read start time of a single cycle
+  stopwatch_record_start_measurements(2, "single-cycle", 1); // read start time of a single cycle
   mat_mul(N, A, B, C); // Perform the multiplication C = A * B
-  record_end_measurements(2); // read end time of a single cycle
+  stopwatch_record_end_measurements(2); // read end time of a single cycle
 }
-record_end_measurements(1); // Record end measurements of the entire loop
-print_result_table(); // Prints the results in a table format
-destroy_stopwatch(); // Clean up resources used
+stopwatch_record_end_measurements(1); // Record end measurements of the entire loop
+stopwatch_print_result_table(); // Prints the results in a table format
+stopwatch_destroy(); // Clean up resources used
 ```
 
 The result should look similar to this:

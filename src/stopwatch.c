@@ -62,7 +62,7 @@ static int map_stopwatch_to_papi(enum StopwatchEvents stopwatch_event);
 // Initializes PAPI library. Should only be called once.
 // Will return STOPWATCH_OK if successful
 // Will return STOPWATCH_ERR if fail
-int init_stopwatch(const enum StopwatchEvents events_to_add[], unsigned int num_of_events) {
+int stopwatch_init(const enum StopwatchEvents *events_to_add, unsigned int num_of_events) {
   // Check if stopwatch is not already initialized
   if (!initialized_stopwatch) {
     // Reset the function names and times called to default values values
@@ -79,27 +79,27 @@ int init_stopwatch(const enum StopwatchEvents events_to_add[], unsigned int num_
     // Initialize PAPI
     int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
     if (ret_val != PAPI_VER_CURRENT) {
-      destroy_stopwatch();
+      stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
     ret_val = PAPI_create_eventset(&event_set);
     if (ret_val != PAPI_OK) {
-      destroy_stopwatch();
+      stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
     // Attempt to add each event to the event set. If not all can be added STOPWATCH_ERR will be returned
     ret_val = add_events(events_to_add, num_of_events);
     if (ret_val != STOPWATCH_OK) {
-      destroy_stopwatch();
+      stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
     // Start the monotonic clock
     ret_val = PAPI_start(event_set);
     if (ret_val != PAPI_OK) {
-      destroy_stopwatch();
+      stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
@@ -112,7 +112,7 @@ int init_stopwatch(const enum StopwatchEvents events_to_add[], unsigned int num_
 
 // CLean up resources used by PAPI and resets measurements regardless of the stage of execution. Should clean up the
 // necessary elements on a failed or successfully initialization
-void destroy_stopwatch() {
+void stopwatch_destroy() {
   // Regardless if the event set is running or not, calling stop should not produce side effects to state hence return
   // value is not checked.
   PAPI_stop(event_set, NULL);
@@ -128,7 +128,7 @@ void destroy_stopwatch() {
   initialized_stopwatch = false;
 }
 
-int record_start_measurements(int routine_call_num, const char *function_name, unsigned int stack_depth) {
+int stopwatch_record_start_measurements(int routine_call_num, const char *function_name, unsigned int stack_depth) {
   int PAPI_ret = PAPI_read(event_set, readings[routine_call_num].start_events_measurements);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
@@ -148,7 +148,7 @@ int record_start_measurements(int routine_call_num, const char *function_name, u
   return STOPWATCH_OK;
 }
 
-int record_end_measurements(int routine_call_num) {
+int stopwatch_record_end_measurements(int routine_call_num) {
   int PAPI_ret = PAPI_read(event_set, tmp_event_results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
@@ -171,7 +171,7 @@ int record_end_measurements(int routine_call_num) {
   return STOPWATCH_OK;
 }
 
-void print_measurement_results(struct MeasurementResult *result) {
+void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *result) {
   printf("Procedure name: %s\n", result->routine_name);
   printf("Total times run: %lld\n", result->total_times_called);
   printf("Total real cycles elapsed: %lld\n", result->total_real_cyc);
@@ -183,7 +183,7 @@ void print_measurement_results(struct MeasurementResult *result) {
   }
 }
 
-int get_measurement_results(unsigned int routine_call_num, struct MeasurementResult *result) {
+int stopwatch_get_measurement_results(unsigned int routine_call_num, struct StopwatchMeasurementResult *result) {
   if (routine_call_num >= STOPWATCH_MAX_FUNCTION_CALLS) {
     return STOPWATCH_ERR;
   }
@@ -209,7 +209,7 @@ int get_measurement_results(unsigned int routine_call_num, struct MeasurementRes
 // Print results into a formatted table
 // =====================================================================================================================
 
-void print_result_table() {
+void stopwatch_print_result_table() {
   // Generate table
   // Additional 3 for id, name, times called
   const unsigned int columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;

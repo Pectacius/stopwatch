@@ -30,10 +30,10 @@ int main() {
   int N = 1000; // Number of rows/columns in matrix to multiply
   int itercount = 1; // Number of iterations for timing
 
-  struct MeasurementResult result; // structure to hold the results
+  struct StopwatchMeasurementResult result; // structure to hold the results
 
   const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
-  if (init_stopwatch(events, 2) != STOPWATCH_OK) {
+  if (stopwatch_init(events, 2) != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     return -1;
   }
@@ -58,7 +58,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(1, "row-major", 0) != STOPWATCH_OK) {
+    if (stopwatch_record_start_measurements(1, "row-major", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -71,7 +71,7 @@ int main() {
       row_major(N, A, B, C);
     }
 
-    if (record_end_measurements(1) != STOPWATCH_OK) {
+    if (stopwatch_record_end_measurements(1) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -104,7 +104,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(2, "col-major", 0) != STOPWATCH_OK) {
+    if (stopwatch_record_start_measurements(2, "col-major", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -117,7 +117,7 @@ int main() {
       column_major(N, A, B, C);
     }
 
-    if (record_end_measurements(2) != STOPWATCH_OK) {
+    if (stopwatch_record_end_measurements(2) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -154,7 +154,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(3, "pointer-major", 0) != STOPWATCH_OK) {
+    if (stopwatch_record_start_measurements(3, "pointer-major", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -169,7 +169,7 @@ int main() {
       pointer_major(N, A, B, C);
     }
 
-    if (record_end_measurements(3) != STOPWATCH_OK) {
+    if (stopwatch_record_end_measurements(3) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -201,7 +201,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(4, "cache-oblivious", 0) != STOPWATCH_OK) {
+    if (stopwatch_record_start_measurements(4, "cache-oblivious", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -214,7 +214,7 @@ int main() {
       cache_oblivious(N, A, B, C);
     }
 
-    if (record_end_measurements(4) != STOPWATCH_OK) {
+    if (stopwatch_record_end_measurements(4) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       return -1;
     }
@@ -225,8 +225,8 @@ int main() {
     free(C);
     printf("Completed cache-oblivious\n");
   }
-  print_result_table();
-  destroy_stopwatch();
+  stopwatch_print_result_table();
+  stopwatch_destroy();
 
   return 0;
 }

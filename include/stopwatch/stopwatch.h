@@ -26,7 +26,7 @@ enum StopwatchEvents {
 // =====================================================================================================================
 // Structure holding results for a specific entry
 // =====================================================================================================================
-struct MeasurementResult {
+struct StopwatchMeasurementResult {
   long long total_real_cyc;
   long long total_real_usec;
   long long total_event_values[STOPWATCH_MAX_EVENTS];
@@ -44,30 +44,30 @@ struct MeasurementResult {
 // Initializes the event timers. Currently the events that are measured are hard coded. This will also start the
 // monotonic measurement clock as currently it is assumed that consumers would immediately start the clock after
 // initializing the stopwatch structure.
-int init_stopwatch(const enum StopwatchEvents events_to_add[], unsigned int num_of_events);
+int stopwatch_init(const enum StopwatchEvents *events_to_add, unsigned int num_of_events);
 
 // Stops the monotonic event timers and cleans up resources used by the timer. Interestingly valgrind still reports a
 // memory leak with the PAPI specific resources
-void destroy_stopwatch();
+void stopwatch_destroy();
 
 // =====================================================================================================================
 // Operations
 // =====================================================================================================================
 
 // Records the current values on the monotonic event timers
-int record_start_measurements(int routine_call_num, const char *function_name, unsigned int stack_depth);
+int stopwatch_record_start_measurements(int routine_call_num, const char *function_name, unsigned int stack_depth);
 
 // Records the current values on the monotonic event timers. Will also perform a delta between the values recorded from
-// `record_start_measurements` and the current values to give a measurement on the profile on the procedure executing
-// between the calls of `record_start_measurements` and `record_end_measurements`
-int record_end_measurements(int routine_call_num);
+// `stopwatch_record_start_measurements` and the current values to give a measurement on the profile on the procedure executing
+// between the calls of `stopwatch_record_start_measurements` and `stopwatch_record_end_measurements`
+int stopwatch_record_end_measurements(int routine_call_num);
 
-int get_measurement_results(unsigned int routine_call_num, struct MeasurementResult *result);
+int stopwatch_get_measurement_results(unsigned int routine_call_num, struct StopwatchMeasurementResult *result);
 
 // Prints out the results
-void print_measurement_results(struct MeasurementResult *result);
+void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *result);
 
 // Generates a table as a pretty printed string
-void print_result_table();
+void stopwatch_print_result_table();
 
 #endif //STOPWATCH_STOPWATCH_H

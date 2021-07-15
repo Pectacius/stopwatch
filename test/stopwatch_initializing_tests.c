@@ -9,8 +9,8 @@
 void test_stopwatch_setup_teardown() {
   const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
   const unsigned int num_events = 2;
-  assert(init_stopwatch(events, num_events) == STOPWATCH_OK);
-  destroy_stopwatch();
+  assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+  stopwatch_destroy();
 }
 
 // Initialize and destroy the event timers multiple times. This will assure that paired calls to `init_event_timers` and
@@ -21,8 +21,8 @@ void test_stopwatch_setup_teardown_multiple_times() {
 // Call `init_event_timer` and `destroy_event_timer`
   const int max_iterations = 10;
   for (int i = 0; i < max_iterations; i++) {
-    assert(init_stopwatch(events, num_events) == STOPWATCH_OK);
-    destroy_stopwatch();
+    assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+    stopwatch_destroy();
   }
 }
 
@@ -31,17 +31,17 @@ void test_stopwatch_setup_teardown_multiple_times() {
 void test_stopwatch_setup_twice() {
   const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
   const unsigned int num_events = 2;
-  assert(init_stopwatch(events, num_events) == STOPWATCH_OK);
-  assert(init_stopwatch(events, num_events) == STOPWATCH_ERR);
-  destroy_stopwatch();
+  assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+  assert(stopwatch_init(events, num_events) == STOPWATCH_ERR);
+  stopwatch_destroy();
 }
 
 // Tests that the initial total times called is set to zero in the `MeasurementReadings` struct. All the other fields
 // will be set to their default values but that should not matter as they will be overridden anyways.
 void test_stopwatch_times_called_initial_value() {
-  struct MeasurementResult result;
+  struct StopwatchMeasurementResult result;
   for (unsigned int idx = 0; idx < 500; idx++) {
-    assert(get_measurement_results(idx, &result) == STOPWATCH_OK);
+    assert(stopwatch_get_measurement_results(idx, &result) == STOPWATCH_OK);
     assert(result.total_times_called == 0);
   }
 }

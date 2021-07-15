@@ -8,7 +8,7 @@ void row_major(int N, float A[N][N], float B[N][N], float C[N][N]);
 
 int main() {
   const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS};
-  if (init_stopwatch(events, 2) != STOPWATCH_OK) {
+  if (stopwatch_init(events, 2) != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     exit(-1);
   }
@@ -18,7 +18,7 @@ int main() {
     int itercount = 10;
 
     // Structure for results
-    struct MeasurementResult result;
+    struct StopwatchMeasurementResult result;
 
     // Allocate the A, B, and C arrays on the heap.
     // See https://stackoverflow.com/questions/10116368/heap-allocate-a-2d-array-not-array-of-pointers
@@ -38,7 +38,7 @@ int main() {
       }
     }
 
-    if (record_start_measurements(1, "total-loop", 0) != STOPWATCH_OK) {
+    if (stopwatch_record_start_measurements(1, "total-loop", 0) != STOPWATCH_OK) {
       printf("Error reading measurements\n");
       exit(-1);
     }
@@ -48,7 +48,7 @@ int main() {
       memset(C, 0, sizeof(float) * N * N);
 
       // read start time
-      if (record_start_measurements(2, "single-cycle", 1) != STOPWATCH_OK) {
+      if (stopwatch_record_start_measurements(2, "single-cycle", 1) != STOPWATCH_OK) {
         printf("Error reading measurements\n");
         exit(-1);
       }
@@ -56,13 +56,13 @@ int main() {
       row_major(N, A, B, C);
 
       // read end time
-      if (record_end_measurements(2) != STOPWATCH_OK) {
+      if (stopwatch_record_end_measurements(2) != STOPWATCH_OK) {
         printf("Error reading measurements\n");
         exit(-1);
       }
     }
 
-    if (record_end_measurements(1) != 0) {
+    if (stopwatch_record_end_measurements(1) != 0) {
       printf("Error reading measurements\n");
       exit(-1);
     }
@@ -71,10 +71,10 @@ int main() {
     free(B);
     free(C);
 
-    print_result_table();
+    stopwatch_print_result_table();
   }
 
-  destroy_stopwatch();
+  stopwatch_destroy();
 }
 
 void row_major(int N, float A[N][N], float B[N][N], float C[N][N]) {

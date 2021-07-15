@@ -9,7 +9,7 @@
 // Does a simple performance measurement on a matrix multiplication
 void test_stopwatch_perf_mat_mul() {
   int N = 1000; // Square matrix size
-  struct MeasurementResult result;
+  struct StopwatchMeasurementResult result;
 
   float (*A)[N] = calloc(sizeof(float), N * N);
   float (*B)[N] = calloc(sizeof(float), N * N);
@@ -25,13 +25,13 @@ void test_stopwatch_perf_mat_mul() {
 
   const enum StopwatchEvents events[] = {L1_CACHE_MISS, CYCLES_STALLED_RESOURCE};
   const unsigned int num_events = 2;
-  assert(init_stopwatch(events, num_events) == STOPWATCH_OK);
-  assert(record_start_measurements(1, "mat-mul", 0) == STOPWATCH_OK);
+  assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+  assert(stopwatch_record_start_measurements(1, "mat-mul", 0) == STOPWATCH_OK);
   row_major(N, A, B, C);
-  assert(record_end_measurements(1) == STOPWATCH_OK);
+  assert(stopwatch_record_end_measurements(1) == STOPWATCH_OK);
 
   // Check the function name and stack depth are correct
-  assert(get_measurement_results(1, &result) == STOPWATCH_OK);
+  assert(stopwatch_get_measurement_results(1, &result) == STOPWATCH_OK);
   assert(result.stack_depth == 0);
   assert(strcmp(result.routine_name, "mat-mul") == 0);
 
@@ -50,19 +50,19 @@ void test_stopwatch_perf_mat_mul() {
   // does no work which cannot be as floating point operations are being performed.
   assert(result.total_real_cyc > result.total_event_values[1]);
 
-  destroy_stopwatch();
+  stopwatch_destroy();
 }
 
 // Repeatedly does the same matrix multiplication to test the accumulation feature
 void test_stopwatch_perf_mat_mul_loop() {
   const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS};
-  assert(init_stopwatch(events, 2) == STOPWATCH_OK);
+  assert(stopwatch_init(events, 2) == STOPWATCH_OK);
 
   int N = 1000;
   int itercount = 10;
 
   // Structure for results
-  struct MeasurementResult result;
+  struct StopwatchMeasurementResult result;
 
   // Allocate the A, B, and C arrays on the heap.
   // See https://stackoverflow.com/questions/10116368/heap-allocate-a-2d-array-not-array-of-pointers
@@ -82,35 +82,35 @@ void test_stopwatch_perf_mat_mul_loop() {
     }
   }
 
-  assert(record_start_measurements(1, "total-loop", 0) == STOPWATCH_OK);
+  assert(stopwatch_record_start_measurements(1, "total-loop", 0) == STOPWATCH_OK);
 
   for (int iter = 0; iter < itercount; iter++) {
     // clear C array
     memset(C, 0, sizeof(float) * N * N);
 
     // read start time
-    assert(record_start_measurements(2, "single-cycle", 1) == STOPWATCH_OK);
+    assert(stopwatch_record_start_measurements(2, "single-cycle", 1) == STOPWATCH_OK);
     // Perform the multiplication
     row_major(N, A, B, C);
 
     // read end time
-    assert(record_end_measurements(2) == STOPWATCH_OK);
+    assert(stopwatch_record_end_measurements(2) == STOPWATCH_OK);
   }
 
-  assert(record_end_measurements(1) == STOPWATCH_OK);
+  assert(stopwatch_record_end_measurements(1) == STOPWATCH_OK);
 
   free(A);
   free(B);
   free(C);
 
-  struct MeasurementResult total_loop;
-  struct MeasurementResult single_cycle;
+  struct StopwatchMeasurementResult total_loop;
+  struct StopwatchMeasurementResult single_cycle;
 
-  assert(get_measurement_results(1, &total_loop) == STOPWATCH_OK);
+  assert(stopwatch_get_measurement_results(1, &total_loop) == STOPWATCH_OK);
   assert(total_loop.stack_depth == 0);
   assert(strcmp(total_loop.routine_name, "total-loop") == 0);
 
-  assert(get_measurement_results(2, &single_cycle) == STOPWATCH_OK);
+  assert(stopwatch_get_measurement_results(2, &single_cycle) == STOPWATCH_OK);
   assert(single_cycle.stack_depth == 1);
   assert(strcmp(single_cycle.routine_name, "single-cycle") == 0);
 
@@ -135,7 +135,7 @@ void test_stopwatch_perf_mat_mul_loop() {
   assert(relative_error(total_loop.total_real_cyc, single_cycle.total_real_cyc) < 0.01);
   assert(relative_error(total_loop.total_real_usec, single_cycle.total_real_usec) < 0.01);
 
-  destroy_stopwatch();
+  stopwatch_destroy();
 }
 
 int main() {
