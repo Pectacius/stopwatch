@@ -21,10 +21,14 @@ if (UNIX)
 
     find_path(PAPI_INCLUDE_DIR
             NAMES papi.h
+            HINTS ENV PAPI_DIR
+            PATH_SUFFIXES include
             REQUIRED)
 
     find_library(PAPI_LIBRARY
             NAMES papi
+            HINTS ENV PAPI_DIR
+            PATH_SUFFIXES lib
             REQUIRED)
 
     include(FindPackageHandleStandardArgs)
@@ -41,9 +45,9 @@ if (UNIX)
 
     # Make PAPI an imported target and also include its public header papi.h
     if (PAPI_FOUND AND NOT TARGET PAPI::PAPI)
-        add_library(PAPI::PAPI SHARED IMPORTED)
+        add_library(PAPI::PAPI STATIC IMPORTED)
         set_target_properties(PAPI::PAPI PROPERTIES IMPORTED_LOCATION ${PAPI_LIBRARY})
-        target_include_directories(PAPI::PAPI INTERFACE ${PAPI_INCLUDE_DIR})
+        include_directories(${PAPI_INCLUDE_DIR})
     endif ()
 
 else ()
