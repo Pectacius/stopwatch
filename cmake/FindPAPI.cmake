@@ -46,8 +46,11 @@ if (UNIX)
     # Make PAPI an imported target and also include its public header papi.h
     if (PAPI_FOUND AND NOT TARGET PAPI::PAPI)
         add_library(PAPI::PAPI STATIC IMPORTED)
-        set_target_properties(PAPI::PAPI PROPERTIES IMPORTED_LOCATION ${PAPI_LIBRARY})
-        include_directories(${PAPI_INCLUDE_DIR})
+        set_target_properties(
+                PAPI::PAPI
+                PROPERTIES
+                IMPORTED_LOCATION ${PAPI_LIBRARY}
+                INTERFACE_INCLUDE_DIRECTORIES ${PAPI_INCLUDE_DIR})
     endif ()
 
 else ()
