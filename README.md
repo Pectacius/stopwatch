@@ -29,13 +29,29 @@ sudo cmake --build build -- install
 ```
 will install in the default location of `usr/local`
 
-The default location can be changed by setting the `CMAKE_INSTALL_PREFIX` cached variable to the path that Stopwatch
-should be installed.
+The default location can be changed by setting the `CMAKE_INSTALL_PREFIX` cached variable to the path that `Stopwatch`
+should be installed. Note that when installing in a non-orthodox location, any projects that use `Stopwatch` must set
+`CMAKE_PREFIX_PATH` to the `CMAKE_INSTALL_PREFIX` that was used to install `Stopwatch` as that will allow CMake to find
+`Stopwatch` when `find_package(Stopwatch)` is called.
+
+### Optional CMake Configurations
+- `-DBUILD_C_EXAMPLES=ON` will also build the C example programs. The default is OFF
+- `-DBUILD_FORTRAN_EXAMPLES=ON` will also build the Fortran example programs. The default is OFF
 
 ## Using Stopwatch
 In the CMakeLists.txt add:
 - `find_package(Stopwatch REQUIRED)` to make the library available
 - `target_link_libraries(target Stopwatch::Stopwatch)` to link with the library
+- For C targets, add:
+  ```c 
+  #include <stopwatch/stopwatch.h>
+  ```
+  for the interface definitions
+- For Fortran targets, add:
+   ```fortran
+   #include <stopwatch/fstopwatch.F03>
+   ```
+  for the `mod_stopwatch` that contains the Fortran bindings
 
 At the moment, the Stopwatch interface should be used like so:
 1. call `stopwatch_init` to initialize the appropriate structures and start the monotonic event timers. The events to be
@@ -46,27 +62,30 @@ At the moment, the Stopwatch interface should be used like so:
 
 Example of measuring the performance of a loop of matrix multiplication:
 ```c
-const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS}; // Events to measure
-stopwatch_init(events, sizeof(StopwatchEvents)/ sizeof(enum StopwatchEvents)); // Initialize stopwatch
+#include <stopwatch/stopwatch.h>
+int main() {
+  const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS}; // Events to measure
+  stopwatch_init(events, sizeof(StopwatchEvents)/ sizeof(enum StopwatchEvents)); // Initialize stopwatch
 
-int N = 500; // Size of matrix
-int itercount = 10; // Number of iterations
+  int N = 500; // Size of matrix
+  int itercount = 10; // Number of iterations
 
-float (*A)[N] = initialize_mat(N);
-float (*B)[N] = initialize_mat(N);
-float (*C)[N] = initialize_mat(N);
+  float (*A)[N] = initialize_mat(N);
+  float (*B)[N] = initialize_mat(N);
+  float (*C)[N] = initialize_mat(N);
 
-// Matrix multiply loop
-stopwatch_record_start_measurements(1, "total-loop", 0); // Record start time of the entire loop
-for (int iter = 0; iter < itercount; iter++) {
-  memset(C, 0, sizeof(float) * N * N); // clear C array
-  stopwatch_record_start_measurements(2, "single-cycle", 1); // read start time of a single cycle
-  mat_mul(N, A, B, C); // Perform the multiplication C = A * B
-  stopwatch_record_end_measurements(2); // read end time of a single cycle
+  // Matrix multiply loop
+  stopwatch_record_start_measurements(1, "total-loop", 0); // Record start time of the entire loop
+  for (int iter = 0; iter < itercount; iter++) {
+    memset(C, 0, sizeof(float) * N * N); // clear C array
+    stopwatch_record_start_measurements(2, "single-cycle", 1); // read start time of a single cycle
+    mat_mul(N, A, B, C); // Perform the multiplication C = A * B
+    stopwatch_record_end_measurements(2); // read end time of a single cycle
+  }
+  stopwatch_record_end_measurements(1); // Record end measurements of the entire loop
+  stopwatch_print_result_table(); // Prints the results in a table format
+  stopwatch_destroy(); // Clean up resources used
 }
-stopwatch_record_end_measurements(1); // Record end measurements of the entire loop
-stopwatch_print_result_table(); // Prints the results in a table format
-stopwatch_destroy(); // Clean up resources used
 ```
 
 The result should look similar to this:
