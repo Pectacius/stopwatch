@@ -26,7 +26,7 @@ if (UNIX)
             REQUIRED)
 
     find_library(PAPI_LIBRARY
-            NAMES papi
+            NAMES libpapi.a papi
             HINTS ENV PAPI_DIR
             PATH_SUFFIXES lib
             REQUIRED)

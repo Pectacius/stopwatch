@@ -20,7 +20,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 find_package(PAPI REQUIRED)
 
 add_library(stopwatch
-        SHARED
+        STATIC
         src/stopwatch.c
         include/stopwatch/stopwatch.h
         include/stopwatch/fstopwatch.F03
@@ -96,8 +96,3 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/FindPAPI.cmake
 export(EXPORT stopwatch-targets
         FILE ${CMAKE_CURRENT_BINARY_DIR}/StopwatchTargets.cmake
         NAMESPACE Stopwatch::)
-
-#=======================================================================================================================
-# Register package in the User Package Registry
-#=======================================================================================================================
-export(PACKAGE Stopwatch)
