@@ -1,0 +1,3 @@
+add_executable(heat_transfer heat_transfer.F90)
+target_link_libraries(heat_transfer stopwatch)
+target_compile_options(heat_transfer PRIVATE -O0)

@@ -1,8 +1,8 @@
+if (BUILD_C_EXAMPLES)
+    add_subdirectory("examples_c")
+endif ()
 
-add_executable(matmul matmul.c)
-target_link_libraries(matmul stopwatch)
-target_compile_options(matmul PUBLIC -O0)
-
-add_executable(matmul_loop matmul_loop.c)
-target_link_libraries(matmul_loop stopwatch)
-target_compile_options(matmul_loop PUBLIC -O0)
+if (BUILD_FORTRAN_EXAMPLES)
+    enable_language(Fortran)
+    add_subdirectory("examples_fortran")
+endif ()

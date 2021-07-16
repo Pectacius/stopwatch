@@ -42,12 +42,11 @@ target_link_libraries(stopwatch
         )
 
 # Build examples from the example directory
-option(BUILD_EXAMPLES "Build example programs" OFF)
+option(BUILD_C_EXAMPLES "Build C example programs" OFF)
+option(BUILD_FORTRAN_EXAMPLES "Build Fortran example programs" OFF)
+add_subdirectory("examples")
 
-if (BUILD_EXAMPLES)
-    add_subdirectory("examples")
-endif ()
-
+# Small testing
 add_subdirectory("test")
 
 #=======================================================================================================================
