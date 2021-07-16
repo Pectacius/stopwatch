@@ -6,8 +6,8 @@ program heat_transfer
     use mod_stopwatch
     implicit none
 
-    integer(kind=4), parameter :: num_time_steps = 100
-    integer(kind=4), parameter :: num_elem = 10 ! Number of finite elements per side of the plane
+    integer(kind=4), parameter :: num_time_steps = 1000
+    integer(kind=4), parameter :: num_elem = 1000 ! Number of finite elements per side of the plane
     real(kind=8), dimension(num_elem, num_elem) :: plane
     integer(c_size_t), parameter :: num_events = 2
     integer(kind=kind(L1_CACHE_MISS)), dimension(num_events), parameter :: events = (/TOTAL_CYCLES, L1_CACHE_MISS /)
@@ -64,9 +64,9 @@ program heat_transfer
         stop -1
     end if
 
-    do i = 1, num_elem
-       print '(10f10.2)', plane(i,:) !  This somewhat needs to be changes as number of entries increase....
-    end do
+!    do i = 1, num_elem
+!       print '(10f10.2)', plane(i,:) !  This somewhat needs to be changes as number of entries increase....
+!    end do
 
     ! Print measurement results
     call Fstopwatch_print_result_table()
