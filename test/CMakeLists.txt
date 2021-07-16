@@ -1,7 +1,6 @@
 # ======================================================================================================================
 # Building test suites
 # ======================================================================================================================
-option(ADDRESS_SANITIZE "Enable Address Sanitizer" OFF)
 include(CTest)
 
 if (BUILD_TESTING)
@@ -13,13 +12,10 @@ if (BUILD_TESTING)
 
     add_executable(print_table_unittests "print_table_tests.c")
 
-    # Must support at least 3.10
-    if (ADDRESS_SANITIZE)
-        target_compile_options(print_table_unittests PRIVATE -fsanitize=address)
-        target_link_libraries(print_table_unittests PRIVATE stopwatch -fsanitize=address)
-    else ()
-        target_link_libraries(print_table_unittests PRIVATE stopwatch)
-    endif ()
+    # Must support at least 3.10 so address sanitize is appended to the end of target_link_libraries
+    # ASan is supported by all modern compilers under the sum i.e. gcc/clang/xcode/msvc
+    target_compile_options(print_table_unittests PRIVATE -fsanitize=address)
+    target_link_libraries(print_table_unittests PRIVATE stopwatch -fsanitize=address)
 
     add_test(stopwatch_initializing_tests stopwatch_initializing_unittests)
     add_test(stopwatch_measurement_tests stopwatch_measurement_unittests)
