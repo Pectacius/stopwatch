@@ -23,6 +23,7 @@ add_library(stopwatch
         SHARED
         src/stopwatch.c
         include/stopwatch/stopwatch.h
+        include/stopwatch/fstopwatch.F03
         src/str_table.c
         src/str_table.h
         )

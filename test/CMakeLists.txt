@@ -12,8 +12,8 @@ if (BUILD_TESTING)
     target_link_libraries(measurement_unittests PRIVATE stopwatch)
 
     add_executable(print_table_unittests "print_table_tests.c")
-    target_link_libraries(print_table_unittests PRIVATE stopwatch)
 
+    # Must support at least 3.10
     if (ADDRESS_SANITIZE)
         target_compile_options(print_table_unittests PRIVATE -fsanitize=address)
         target_link_libraries(print_table_unittests PRIVATE stopwatch -fsanitize=address)

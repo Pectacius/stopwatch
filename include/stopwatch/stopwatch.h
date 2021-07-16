@@ -40,7 +40,7 @@ struct StopwatchMeasurementResult {
 // =====================================================================================================================
 // Monotonic clock initialization and destruction
 // =====================================================================================================================
-
+// TODO: Change all unsigned to size_t
 // Initializes the event timers. Currently the events that are measured are hard coded. This will also start the
 // monotonic measurement clock as currently it is assumed that consumers would immediately start the clock after
 // initializing the stopwatch structure.
