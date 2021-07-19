@@ -8,21 +8,18 @@
 // Private helpers definitions
 // =====================================================================================================================
 
-static unsigned int longest_fstring_len_col(const struct StringTable *table, unsigned int col_num);
+static unsigned int longest_fstring_len_col(const struct StringTable *table, size_t col_num);
 
-static void set_table_border(char **cursor, unsigned int row_width);
+static void set_table_border(char **cursor, size_t row_width);
 
-static void set_table_entry(char **cursor, const unsigned int *col_widths, const struct StringTable *table, unsigned int row_num);
+static void set_table_entry(char **cursor, const size_t *col_widths, const struct StringTable *table, unsigned int row_num);
 
-static void set_whitespace(char **cursor, unsigned int whitespace_count);
+static void set_whitespace(char **cursor, size_t whitespace_count);
 
 // =====================================================================================================================
 // Public functions implementations
 // =====================================================================================================================
-struct StringTable *create_table(unsigned int width,
-                                 unsigned int height,
-                                 bool has_header,
-                                 unsigned int indent_spacing) {
+struct StringTable *create_table(size_t width, size_t height, bool has_header, size_t indent_spacing) {
   struct StringTable *new_table = malloc(sizeof(struct StringTable));
   new_table->width = width;
   new_table->height = height;
@@ -33,7 +30,7 @@ struct StringTable *create_table(unsigned int width,
   new_table->contents = calloc(new_table->total_entries, sizeof(char *));
 
   new_table->indent_spacing = indent_spacing;
-  new_table->indent_levels = calloc(new_table->total_entries, sizeof(unsigned int));
+  new_table->indent_levels = calloc(new_table->total_entries, sizeof(size_t));
 
   return new_table;
 }
@@ -44,7 +41,7 @@ int destroy_table(struct StringTable *table) {
   }
 
   if (table->contents != NULL) {
-    for (long long idx = 0; idx < table->total_entries; idx++) {
+    for (size_t idx = 0; idx < table->total_entries; idx++) {
       if (table->contents[idx] != NULL) {
         free(table->contents[idx]);
       }
@@ -76,7 +73,7 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
     return STR_TABLE_ERR;
   }
 
-  const unsigned int effective_idx = pos.row_num * table->width + pos.col_num;
+  const size_t effective_idx = pos.row_num * table->width + pos.col_num;
 
   if (table->contents[effective_idx] != NULL) {
     free(table->contents[effective_idx]);
@@ -87,7 +84,7 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
 }
 
 int add_entry_lld(const struct StringTable *table, long long value, struct StringTableCellPos pos) {
-  unsigned int num_digits = (int) (log10((double) value)) + 1;
+  size_t num_digits = (int) (log10((double) value)) + 1;
 
   char *num_str = malloc(sizeof(char) * (num_digits + 1)); // Extra value for the null terminator
   sprintf(num_str, "%lld", value);
@@ -96,7 +93,7 @@ int add_entry_lld(const struct StringTable *table, long long value, struct Strin
   return STR_TABLE_OK;
 }
 
-int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, struct StringTableCellPos pos) {
+int set_indent_lvl(const struct StringTable *table, size_t indent_lvl, struct StringTableCellPos pos) {
   if (table == NULL) {
     return STR_TABLE_ERR;
   }
@@ -113,7 +110,7 @@ int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, str
     return STR_TABLE_ERR;
   }
 
-  const unsigned int effective_idx = pos.row_num * table->width + pos.col_num;
+  const size_t effective_idx = pos.row_num * table->width + pos.col_num;
 
   table->indent_levels[effective_idx] = indent_lvl;
   return STR_TABLE_OK;
@@ -124,15 +121,15 @@ char *make_table_str(const struct StringTable *table) {
     return NULL;
   }
 
-  unsigned int num_char_row = 0;
-  unsigned int num_rows = 0;
+  size_t num_char_row = 0;
+  size_t num_rows = 0;
 
   // Array holding the space that each formatted entry takes
-  unsigned int *col_widths = malloc(table->width * sizeof(unsigned int));
+  size_t *col_widths = malloc(table->width * sizeof(size_t));
 
   // Compute number of characters in a row
-  for (unsigned int col = 0; col < table->width; col++) {
-    const unsigned int num_chars = longest_fstring_len_col(table, col);
+  for (size_t col = 0; col < table->width; col++) {
+    const size_t num_chars = longest_fstring_len_col(table, col);
     col_widths[col] = num_chars;
     num_char_row += (num_chars + 3); // Three extra for column line and left spacing and 1 for right spacing
   }
@@ -150,7 +147,7 @@ char *make_table_str(const struct StringTable *table) {
 
   // Set the top border
   set_table_border(&cursor, num_char_row);
-  for (unsigned int row = 0; row < table->height; row++) {
+  for (size_t row = 0; row < table->height; row++) {
     set_table_entry(&cursor, col_widths, table, row);
     if (row == 0 && table->has_header) {
       set_table_border(&cursor, num_char_row);
@@ -172,11 +169,11 @@ char *make_table_str(const struct StringTable *table) {
 // Preconditions:
 //    - table is never null
 //    - col_num is always less than the width of the table
-static unsigned int longest_fstring_len_col(const struct StringTable *table, unsigned int col_num) {
-  unsigned int longest_so_far = 0;
+static unsigned int longest_fstring_len_col(const struct StringTable *table, size_t col_num) {
+  size_t longest_so_far = 0;
 
-  for (unsigned int row = 0; row < table->height; row++) {
-    const unsigned int effective_idx = row * table->width + col_num;
+  for (size_t row = 0; row < table->height; row++) {
+    const size_t effective_idx = row * table->width + col_num;
     size_t
         curr_len = strlen(table->contents[effective_idx]) + table->indent_levels[effective_idx] * table->indent_spacing;
     if (curr_len > longest_so_far) {
@@ -187,8 +184,8 @@ static unsigned int longest_fstring_len_col(const struct StringTable *table, uns
 }
 
 // The cursor will move forward as the characters are inserted to create the border
-static void set_table_border(char **cursor, unsigned int row_width) {
-  for (unsigned i = 0; i < row_width; i++) {
+static void set_table_border(char **cursor, size_t row_width) {
+  for (size_t i = 0; i < row_width; i++) {
     if ((i == 0) || (i == (row_width - 2))) {
       **cursor = '|';
     } else if (i == row_width - 1) {
@@ -200,16 +197,16 @@ static void set_table_border(char **cursor, unsigned int row_width) {
   }
 }
 
-static void set_table_entry(char **cursor, const unsigned int *col_widths, const struct StringTable *table, unsigned int row_num) {
+static void set_table_entry(char **cursor, const size_t *col_widths, const struct StringTable *table, unsigned int row_num) {
   for (unsigned int col = 0; col < table->width; col++) {
     // Fill in left border
     strncpy(*cursor, "| ", 2);
     (*cursor)+=2;
 
-    const unsigned int effective_idx = row_num * table->width + col;
-    const unsigned int left_indent_spaces = table->indent_spacing * table->indent_levels[effective_idx];
-    const unsigned int str_len = strlen(table->contents[effective_idx]);
-    const unsigned int right_spaces = col_widths[col] - left_indent_spaces - str_len + 1; // Extra one for right padding
+    const size_t effective_idx = row_num * table->width + col;
+    const size_t left_indent_spaces = table->indent_spacing * table->indent_levels[effective_idx];
+    const size_t str_len = strlen(table->contents[effective_idx]);
+    const size_t right_spaces = col_widths[col] - left_indent_spaces - str_len + 1; // Extra one for right padding
 
     // Fill in left indent with whitespaces
     set_whitespace(cursor, left_indent_spaces);
@@ -226,8 +223,8 @@ static void set_table_entry(char **cursor, const unsigned int *col_widths, const
   (*cursor)+=2;
 }
 
-static void set_whitespace(char **cursor, unsigned int whitespace_count) {
-  for(unsigned int i = 0; i < whitespace_count; i++) {
+static void set_whitespace(char **cursor, size_t whitespace_count) {
+  for(size_t i = 0; i < whitespace_count; i++) {
     **cursor = ' ';
     (*cursor)++;
   }

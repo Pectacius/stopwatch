@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,7 +17,7 @@
 struct MeasurementReadings {
   char routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN];
   long long total_times_called;
-  unsigned int stack_depth;
+  size_t stack_depth;
 
   long long total_events_measurements[STOPWATCH_MAX_EVENTS];
   long long start_events_measurements[STOPWATCH_MAX_EVENTS];
@@ -41,7 +42,7 @@ static int events[STOPWATCH_MAX_EVENTS];
 static long long tmp_event_results[STOPWATCH_MAX_EVENTS];
 
 // Number of events that are currently stored in the `events` variable.
-static unsigned int num_registered_events = 0;
+static size_t num_registered_events = 0;
 
 // Event set used by
 static int event_set = PAPI_NULL;
@@ -49,7 +50,7 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 // Private helper functions definitions
 // =====================================================================================================================
-static int add_events(const enum StopwatchEvents events_to_add[], unsigned int num_of_events);
+static int add_events(const enum StopwatchEvents events_to_add[], size_t num_of_events);
 
 static unsigned int find_num_entries();
 
@@ -62,7 +63,7 @@ static int map_stopwatch_to_papi(enum StopwatchEvents stopwatch_event);
 // Initializes PAPI library. Should only be called once.
 // Will return STOPWATCH_OK if successful
 // Will return STOPWATCH_ERR if fail
-int stopwatch_init(const enum StopwatchEvents *events_to_add, unsigned int num_of_events) {
+int stopwatch_init(const enum StopwatchEvents *events_to_add, size_t num_of_events) {
   // Check if stopwatch is not already initialized
   if (!initialized_stopwatch) {
     // Reset the function names and times called to default values values
@@ -128,7 +129,7 @@ void stopwatch_destroy() {
   initialized_stopwatch = false;
 }
 
-int stopwatch_record_start_measurements(int routine_call_num, const char *function_name, unsigned int stack_depth) {
+int stopwatch_record_start_measurements(int routine_call_num, const char *function_name, size_t stack_depth) {
   int PAPI_ret = PAPI_read(event_set, readings[routine_call_num].start_events_measurements);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
@@ -183,7 +184,7 @@ void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *resu
   }
 }
 
-int stopwatch_get_measurement_results(unsigned int routine_call_num, struct StopwatchMeasurementResult *result) {
+int stopwatch_get_measurement_results(size_t routine_call_num, struct StopwatchMeasurementResult *result) {
   if (routine_call_num >= STOPWATCH_MAX_FUNCTION_CALLS) {
     return STOPWATCH_ERR;
   }
@@ -270,7 +271,7 @@ void stopwatch_print_result_table() {
 // =====================================================================================================================
 
 
-static int add_events(const enum StopwatchEvents events_to_add[], unsigned int num_of_events) {
+static int add_events(const enum StopwatchEvents events_to_add[], size_t num_of_events) {
   if (num_of_events > STOPWATCH_MAX_EVENTS) {
     return STOPWATCH_ERR;
   }

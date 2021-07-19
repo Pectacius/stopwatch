@@ -2,6 +2,7 @@
 #define LIBSTOPWATCH_SRC_STR_TABLE_H_
 
 #include <stdbool.h> // Seriously doubt anyone is still stuck pre C99
+#include <stddef.h>
 
 #define STR_TABLE_ERR -1
 #define STR_TABLE_OK 0
@@ -9,21 +10,21 @@
 // Structure for indicating table cell position. Much superior to adding row and column to function arguments as it is
 // very easy to mix / confuse them
 struct StringTableCellPos {
-  unsigned int row_num; // Row number zero indexed
-  unsigned int col_num; // Column number zero indexed
+  size_t row_num; // Row number zero indexed
+  size_t col_num; // Column number zero indexed
 };
 
 struct StringTable {
-  char **contents;              // Contents of each cell in table
-  unsigned int width;           // Number of columns
-  unsigned int height;          // Number of rows excluding header if exists
-  long long total_entries;      // Total number of cells. Equals the length of `contents` and `indent_levels`
+  char **contents;         // Contents of each cell in table
+  size_t width;           // Number of columns
+  size_t height;          // Number of rows excluding header if exists
+  size_t total_entries;   // Total number of cells. Equals the length of `contents` and `indent_levels`
   bool has_header;
-  unsigned int indent_spacing;  // Number of spaces to use for indentation
-  unsigned int *indent_levels;  // Indentation levels of each cell in the entire table including header and body
+  size_t indent_spacing;  // Number of spaces to use for indentation
+  size_t *indent_levels;  // Indentation levels of each cell in the entire table including header and body
 };
 
-struct StringTable *create_table(unsigned int width, unsigned int height, bool has_header, unsigned int indent_spacing);
+struct StringTable *create_table(size_t width, size_t height, bool has_header, size_t indent_spacing);
 
 int destroy_table(struct StringTable *table);
 
@@ -33,7 +34,7 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
 
 int add_entry_lld(const struct StringTable *table, long long value, struct StringTableCellPos pos);
 
-int set_indent_lvl(const struct StringTable *table, unsigned int indent_lvl, struct StringTableCellPos pos);
+int set_indent_lvl(const struct StringTable *table, size_t indent_lvl, struct StringTableCellPos pos);
 
 char *make_table_str(const struct StringTable *table);
 
