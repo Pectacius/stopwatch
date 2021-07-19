@@ -29,10 +29,18 @@ sudo cmake --build build -- install
 ```
 will install in the default location of `usr/local`
 
+#### Custom Install Location:
 The default location can be changed by setting the `CMAKE_INSTALL_PREFIX` cached variable to the path that `Stopwatch`
-should be installed. Note that when installing in a non-orthodox location, any projects that use `Stopwatch` must set
-`CMAKE_PREFIX_PATH` to the `CMAKE_INSTALL_PREFIX` that was used to install `Stopwatch` as that will allow CMake to find
-`Stopwatch` when `find_package(Stopwatch)` is called.
+should be installed. Note that when installing in a custom location, CMake must be pointed to the installation directory
+by setting the`Stopwatch_DIR` cache variable to `<install_path>/lib/cmake/Stopwatch`.
+
+##### Example:
+If `Stopwatch` is installed in `~/stopwatch_install`and `project_foo` depends on `Stopwatch` then the CMake cache for
+`project_foo` must be generated as so assuming that the build directory is `build`
+
+```sh
+cmake -Bbuild -DStopwatch_DIR=~/stopwatch_install/lib/cmake/Stopwatch
+```
 
 ### Optional CMake Configurations
 - `-DBUILD_C_EXAMPLES=ON` will also build the C example programs. The default is OFF
