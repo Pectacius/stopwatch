@@ -17,7 +17,7 @@ endif ()
 # Allow PAPI to be found via a find_package as it does not provide any CMake targets itself
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
-add_subdirectory("src")
+#add_subdirectory("src")
 
 # Build examples from the example directory
 option(BUILD_C_EXAMPLES "Build C example programs" OFF)
@@ -36,6 +36,10 @@ find_package(PAPI REQUIRED)
 add_library(stopwatch
         STATIC
         src/stopwatch.c
+        src/str_table.c
+        src/str_table.h
+        src/call_tree.c
+        src/call_tree.h
         ${CMAKE_SOURCE_DIR}/include/stopwatch/stopwatch.h
         ${CMAKE_SOURCE_DIR}/include/stopwatch/fstopwatch.F03
         )
@@ -44,15 +48,15 @@ add_library(stopwatch
 target_include_directories(stopwatch
         PUBLIC
         $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         )
 
 target_link_libraries(stopwatch
         PRIVATE
         PAPI::PAPI
         m
-        call_tree
-        str_table
+        #call_tree
+        #str_table
         )
 
 #=======================================================================================================================
@@ -79,26 +83,8 @@ install(EXPORT stopwatch-targets
         ${INSTALL_CONFIGDIR}
         )
 
-include(CMakePackageConfigHelpers)
-
-configure_package_config_file(${CMAKE_CURRENT_LIST_DIR}/cmake/StopwatchConfig.cmake.in
-        ${CMAKE_CURRENT_BINARY_DIR}/StopwatchConfig.cmake
-        INSTALL_DESTINATION ${INSTALL_CONFIGDIR}
-        )
-
 install(FILES
-        ${CMAKE_CURRENT_LIST_DIR}/cmake/FindPAPI.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/StopwatchConfig.cmake
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindPAPI.cmake
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/StopwatchConfig.cmake
         DESTINATION ${INSTALL_CONFIGDIR}
         )
-
-#=======================================================================================================================
-# Exporting from the build tree
-#=======================================================================================================================
-configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/FindPAPI.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/FindPAPI.cmake
-        COPYONLY)
-
-export(EXPORT stopwatch-targets
-        FILE ${CMAKE_CURRENT_BINARY_DIR}/StopwatchTargets.cmake
-        NAMESPACE Stopwatch::)

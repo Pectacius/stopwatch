@@ -6,6 +6,7 @@
 
 #include "stopwatch/stopwatch.h"
 #include "str_table.h"
+#include "call_tree.h"
 #include <papi.h>
 
 #define STOPWATCH_INVALID_EVENT 1
@@ -226,36 +227,42 @@ int stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasure
 void stopwatch_print_result_table() {
   // Generate table
   // Additional 3 for id, name, times called
+  const size_t num_functions = find_num_entries();
   const size_t columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;
-  const size_t rows = find_num_entries() + 1; // Extra row for header
+  const size_t rows = num_functions + 1; // Extra row for header
 
   struct StringTable *table = create_table(columns, rows, true, INDENT_SPACING);
 
   set_header(table);
 
-  unsigned int row_cursor = 1;
-  for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
-    if (readings[idx].total_times_called == 0) {
-      continue;
+  if (num_functions > 0) {
+    struct FunctionNode* function_list = malloc(sizeof(struct FunctionNode) * num_functions);
+    size_t entry_num = 0;
+    for (size_t idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
+      if (readings[idx].total_times_called == 0) {
+        continue;
+      }
+      function_list[entry_num].function_id = idx;
+      function_list[entry_num].caller_id = readings[idx].caller_routine_id;
+      entry_num++;
     }
-    // Default table measurement values
-    add_entry_lld(table, idx, (struct StringTableCellPos) {row_cursor, 0});
 
-    add_entry_str(table, readings[idx].routine_name, (struct StringTableCellPos) {row_cursor, 1});
-    set_indent_lvl(table, readings[idx].stack_depth, (struct StringTableCellPos) {row_cursor, 1});
+    struct FunctionCallNode* call_tree = function_call_node_grow_tree_from_array(function_list, num_functions);
+    free(function_list);
+    struct FunctionCallTreeDFIter* iter = create_function_call_tree_DF_iter(call_tree);
+    // Since the first function call is always a call to main and we do not want to print that, we skip that entry
+    function_call_tree_DF_iter_next(iter);
 
-    add_entry_lld(table, readings[idx].total_times_called, (struct StringTableCellPos) {row_cursor, 2});
-    add_entry_lld(table, readings[idx].total_timers_measurements[0], (struct StringTableCellPos) {row_cursor, 3});
-    add_entry_lld(table, readings[idx].total_timers_measurements[1], (struct StringTableCellPos) {row_cursor, 4});
-
-    // Event specific
-    for (unsigned int entry_idx = 0; entry_idx < num_registered_events; entry_idx++) {
-      const unsigned int effective_col_idx = columns - num_registered_events + entry_idx;
-      add_entry_lld(table,
-                    readings[idx].total_events_measurements[entry_idx],
-                    (struct StringTableCellPos) {row_cursor, effective_col_idx});
+    size_t row_cursor = 1;
+    while(function_call_tree_DF_iter_has_next(iter)) {
+      const struct FunctionCallNode* next = function_call_tree_DF_iter_next(iter);
+      // Subtract from stack depth as we want the stack depth relative to the call to main where main has a depth of 0
+      set_body_row(table, row_cursor, next->function_id, next->stack_depth-1, readings[next->function_id]);
+      row_cursor++;
     }
-    row_cursor++;
+
+    destroy_function_call_tree_DF_iter(iter);
+    destroy_function_call_node(call_tree);
   }
 
   // Format print table

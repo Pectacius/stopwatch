@@ -32,7 +32,7 @@ void test_stopwatch_perf_mat_mul() {
 
   // Check the function name and stack depth are correct
   assert(stopwatch_get_measurement_results(1, &result) == STOPWATCH_OK);
-  assert(result.stack_depth == 0);
+  assert(result.caller_routine_id == 0);
   assert(strcmp(result.routine_name, "mat-mul") == 0);
 
   // check results. At the moment there is not exactly a precise way to assert that the produced value is accurate due
@@ -107,11 +107,11 @@ void test_stopwatch_perf_mat_mul_loop() {
   struct StopwatchMeasurementResult single_cycle;
 
   assert(stopwatch_get_measurement_results(1, &total_loop) == STOPWATCH_OK);
-  assert(total_loop.stack_depth == 0);
+  assert(total_loop.caller_routine_id == 0);
   assert(strcmp(total_loop.routine_name, "total-loop") == 0);
 
   assert(stopwatch_get_measurement_results(2, &single_cycle) == STOPWATCH_OK);
-  assert(single_cycle.stack_depth == 1);
+  assert(single_cycle.caller_routine_id == 1);
   assert(strcmp(single_cycle.routine_name, "single-cycle") == 0);
 
   assert(total_loop.total_real_cyc > 0);
