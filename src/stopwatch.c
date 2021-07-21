@@ -10,19 +10,24 @@
 
 #define STOPWATCH_INVALID_EVENT 1
 #define INDENT_SPACING 4
-#define STOPWATCH_NUM_TIMERS 2
-#define STOPWATCH_MAX_FUNCTION_CALLS 500
+#define STOPWATCH_NUM_TIMERS 2            // Number of different timers. Corresponds to real cycles and real microseconds timers
+#define STOPWATCH_MAX_FUNCTION_CALLS 500  // Maximum number of measurement entries
 
 // Structure used to hold readings for the measurement clock.
 struct MeasurementReadings {
+  // Name of the routine being measured
   char routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN];
+  // Number of times the routine has been called
   long long total_times_called;
-  size_t stack_depth;
-
+  // ID of the procedure that called the current measured procedure
+  size_t caller_routine_id;
+  // Accumulated measurements of each event. Each index corresponds to one event
   long long total_events_measurements[STOPWATCH_MAX_EVENTS];
+  // Start measurements of each event. Each index corresponds to one event
   long long start_events_measurements[STOPWATCH_MAX_EVENTS];
-
-  long long total_timers_measurements[STOPWATCH_NUM_TIMERS]; // First index real cycles, second index real microseconds
+  // Accumulated values of each timer. First index real cycles, second index real microseconds
+  long long total_timers_measurements[STOPWATCH_NUM_TIMERS];
+  // Start values of each timer. First index real cycles, second index real microseconds
   long long start_timers_measurements[STOPWATCH_NUM_TIMERS];
 };
 
@@ -52,9 +57,17 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 static int add_events(const enum StopwatchEvents events_to_add[], size_t num_of_events);
 
-static unsigned int find_num_entries();
+static size_t find_num_entries();
 
 static int map_stopwatch_to_papi(enum StopwatchEvents stopwatch_event);
+
+static void set_header(const struct StringTable *table);
+
+static void set_body_row(const struct StringTable *table,
+                         size_t row_num,
+                         size_t routine_id,
+                         size_t stack_depth,
+                         struct MeasurementReadings reading);
 
 // =====================================================================================================================
 // Public interface functions implementations
@@ -129,44 +142,44 @@ void stopwatch_destroy() {
   initialized_stopwatch = false;
 }
 
-int stopwatch_record_start_measurements(int routine_call_num, const char *function_name, size_t stack_depth) {
-  int PAPI_ret = PAPI_read(event_set, readings[routine_call_num].start_events_measurements);
+int stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id) {
+  int PAPI_ret = PAPI_read(event_set, readings[routine_id].start_events_measurements);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
-  readings[routine_call_num].start_timers_measurements[0] = PAPI_get_real_cyc();
-  readings[routine_call_num].start_timers_measurements[1] = PAPI_get_real_usec();
+  readings[routine_id].start_timers_measurements[0] = PAPI_get_real_cyc();
+  readings[routine_id].start_timers_measurements[1] = PAPI_get_real_usec();
 
   // Only log these values the first time it is called as there is a possibility of nesting.
-  if (readings[routine_call_num].total_times_called == 0) {
-    readings[routine_call_num].stack_depth = stack_depth;
+  if (readings[routine_id].total_times_called == 0) {
+    readings[routine_id].caller_routine_id = caller_routine_id;
 
     // Copy in the routine name and ensure the string is null terminated
-    strncpy(readings[routine_call_num].routine_name, function_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
-    readings[routine_call_num].routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN - 1] = '\0';
+    strncpy(readings[routine_id].routine_name, function_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
+    readings[routine_id].routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN - 1] = '\0';
   }
 
   return STOPWATCH_OK;
 }
 
-int stopwatch_record_end_measurements(int routine_call_num) {
+int stopwatch_record_end_measurements(size_t routine_id) {
   int PAPI_ret = PAPI_read(event_set, tmp_event_results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
 
-  readings[routine_call_num].total_times_called++;
+  readings[routine_id].total_times_called++;
 
   // Accumulate the timer results
-  readings[routine_call_num].total_timers_measurements[0] +=
-      (PAPI_get_real_cyc() - readings[routine_call_num].start_timers_measurements[0]);
-  readings[routine_call_num].total_timers_measurements[1] +=
-      (PAPI_get_real_usec() - readings[routine_call_num].start_timers_measurements[1]);
+  readings[routine_id].total_timers_measurements[0] +=
+      (PAPI_get_real_cyc() - readings[routine_id].start_timers_measurements[0]);
+  readings[routine_id].total_timers_measurements[1] +=
+      (PAPI_get_real_usec() - readings[routine_id].start_timers_measurements[1]);
 
   // Accumulate the event(s) results
   for (unsigned int idx = 0; idx < num_registered_events; idx++) {
-    readings[routine_call_num].total_events_measurements[idx] +=
-        (tmp_event_results[idx] - readings[routine_call_num].start_events_measurements[idx]);
+    readings[routine_id].total_events_measurements[idx] +=
+        (tmp_event_results[idx] - readings[routine_id].start_events_measurements[idx]);
   }
 
   return STOPWATCH_OK;
@@ -177,31 +190,31 @@ void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *resu
   printf("Total times run: %lld\n", result->total_times_called);
   printf("Total real cycles elapsed: %lld\n", result->total_real_cyc);
   printf("Total real microseconds elapsed: %lld\n", result->total_real_usec);
-  for(unsigned int idx = 0; idx < result->num_of_events; idx++) {
+  for (unsigned int idx = 0; idx < result->num_of_events; idx++) {
     char event_code_string[PAPI_MAX_STR_LEN];
     PAPI_event_code_to_name(result->event_names[idx], event_code_string);
     printf("%s: %lld\n", event_code_string, result->total_event_values[idx]);
   }
 }
 
-int stopwatch_get_measurement_results(size_t routine_call_num, struct StopwatchMeasurementResult *result) {
-  if (routine_call_num >= STOPWATCH_MAX_FUNCTION_CALLS) {
+int stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasurementResult *result) {
+  if (routine_id >= STOPWATCH_MAX_FUNCTION_CALLS) {
     return STOPWATCH_ERR;
   }
 
-  result->total_real_cyc = readings[routine_call_num].total_timers_measurements[0];
-  result->total_real_usec = readings[routine_call_num].total_timers_measurements[1];
+  result->total_real_cyc = readings[routine_id].total_timers_measurements[0];
+  result->total_real_usec = readings[routine_id].total_timers_measurements[1];
   result->num_of_events = num_registered_events;
-  for(unsigned int idx = 0; idx < num_registered_events; idx++) {
-    result->total_event_values[idx] = readings[routine_call_num].total_events_measurements[idx];
+  for (unsigned int idx = 0; idx < num_registered_events; idx++) {
+    result->total_event_values[idx] = readings[routine_id].total_events_measurements[idx];
     result->event_names[idx] = events[idx];
   }
 
-  result->total_times_called = readings[routine_call_num].total_times_called;
-  result->stack_depth = readings[routine_call_num].stack_depth;
+  result->total_times_called = readings[routine_id].total_times_called;
+  result->caller_routine_id = readings[routine_id].caller_routine_id;
 
   // String already null terminated
-  strncpy(result->routine_name, readings[routine_call_num].routine_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
+  strncpy(result->routine_name, readings[routine_id].routine_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
 
   return STOPWATCH_OK;
 }
@@ -213,26 +226,12 @@ int stopwatch_get_measurement_results(size_t routine_call_num, struct StopwatchM
 void stopwatch_print_result_table() {
   // Generate table
   // Additional 3 for id, name, times called
-  const unsigned int columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;
-  const unsigned int rows = find_num_entries() + 1; // Extra row for header
+  const size_t columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;
+  const size_t rows = find_num_entries() + 1; // Extra row for header
 
   struct StringTable *table = create_table(columns, rows, true, INDENT_SPACING);
 
-  // Default table entries
-  add_entry_str(table, "ID", (struct StringTableCellPos) {0, 0});
-  add_entry_str(table, "NAME", (struct StringTableCellPos) {0, 1});
-  add_entry_str(table, "TIMES CALLED", (struct StringTableCellPos) {0, 2});
-  add_entry_str(table, "TOTAL REAL CYCLES", (struct StringTableCellPos) {0, 3});
-  add_entry_str(table, "TOTAL REAL MICROSECONDS", (struct StringTableCellPos) {0, 4});
-
-  // Entries for each event
-  for (unsigned int entry_idx = 0; entry_idx < num_registered_events; entry_idx++) {
-    const unsigned int effective_col_idx = columns - num_registered_events + entry_idx;
-
-    char event_code_string[PAPI_MAX_STR_LEN];
-    PAPI_event_code_to_name(events[entry_idx], event_code_string);
-    add_entry_str(table, event_code_string, (struct StringTableCellPos) {0, effective_col_idx});
-  }
+  set_header(table);
 
   unsigned int row_cursor = 1;
   for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
@@ -270,7 +269,6 @@ void stopwatch_print_result_table() {
 // Private helper functions implementation
 // =====================================================================================================================
 
-
 static int add_events(const enum StopwatchEvents events_to_add[], size_t num_of_events) {
   if (num_of_events > STOPWATCH_MAX_EVENTS) {
     return STOPWATCH_ERR;
@@ -304,12 +302,56 @@ static int map_stopwatch_to_papi(enum StopwatchEvents stopwatch_event) {
   }
 }
 
-static unsigned int find_num_entries() {
-  unsigned int entries = 0;
-  for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
+static size_t find_num_entries() {
+  size_t entries = 0;
+  for (size_t idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
     if (readings[idx].total_times_called > 0) {
       entries++;
     }
   }
   return entries;
+}
+
+static void set_header(const struct StringTable *table) {
+  // Default table header entries
+  add_entry_str(table, "ID", (struct StringTableCellPos) {0, 0});
+  add_entry_str(table, "NAME", (struct StringTableCellPos) {0, 1});
+  add_entry_str(table, "TIMES CALLED", (struct StringTableCellPos) {0, 2});
+  add_entry_str(table, "TOTAL REAL CYCLES", (struct StringTableCellPos) {0, 3});
+  add_entry_str(table, "TOTAL REAL MICROSECONDS", (struct StringTableCellPos) {0, 4});
+
+  // Header entries for each measurement event
+  for (unsigned int entry_idx = 0; entry_idx < num_registered_events; entry_idx++) {
+    const size_t num_columns = table->width;
+    const unsigned int effective_col_idx = num_columns - num_registered_events + entry_idx;
+
+    char event_code_string[PAPI_MAX_STR_LEN];
+    PAPI_event_code_to_name(events[entry_idx], event_code_string);
+    add_entry_str(table, event_code_string, (struct StringTableCellPos) {0, effective_col_idx});
+  }
+}
+
+static void set_body_row(const struct StringTable *table,
+                         size_t row_num,
+                         size_t routine_id,
+                         size_t stack_depth,
+                         struct MeasurementReadings reading) {
+  // Default table row measurement values
+  // All routine_id should be able to fit in long long without any overflow
+  add_entry_lld(table, (long long) routine_id, (struct StringTableCellPos) {row_num, 0});
+  add_entry_str(table, reading.routine_name, (struct StringTableCellPos) {row_num, 1});
+  set_indent_lvl(table, stack_depth, (struct StringTableCellPos) {row_num, 1});
+
+  add_entry_lld(table, reading.total_times_called, (struct StringTableCellPos) {row_num, 2});
+  add_entry_lld(table, reading.total_timers_measurements[0], (struct StringTableCellPos) {row_num, 3});
+  add_entry_lld(table, reading.total_timers_measurements[1], (struct StringTableCellPos) {row_num, 4});
+
+  // Event specific table row measurement values
+  for (size_t entry_idx = 0; entry_idx < num_registered_events; entry_idx++) {
+    const size_t columns = table->width;
+    const size_t effective_col_idx = columns - num_registered_events + entry_idx;
+    add_entry_lld(table,
+                  reading.total_events_measurements[entry_idx],
+                  (struct StringTableCellPos) {row_num, effective_col_idx});
+  }
 }

@@ -33,7 +33,7 @@ struct StopwatchMeasurementResult {
   long long total_event_values[STOPWATCH_MAX_EVENTS];
   long long total_times_called;
   char routine_name[NULL_TERM_MAX_ROUTINE_NAME_LEN];
-  size_t stack_depth;
+  size_t caller_routine_id;
   size_t num_of_events;
   int event_names[STOPWATCH_MAX_EVENTS];
 };
@@ -41,7 +41,6 @@ struct StopwatchMeasurementResult {
 // =====================================================================================================================
 // Monotonic clock initialization and destruction
 // =====================================================================================================================
-// TODO: Change all unsigned to size_t
 // Initializes the event timers. Currently the events that are measured are hard coded. This will also start the
 // monotonic measurement clock as currently it is assumed that consumers would immediately start the clock after
 // initializing the stopwatch structure.
@@ -56,14 +55,14 @@ void stopwatch_destroy();
 // =====================================================================================================================
 
 // Records the current values on the monotonic event timers
-int stopwatch_record_start_measurements(int routine_call_num, const char *function_name, size_t stack_depth);
+int stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id);
 
 // Records the current values on the monotonic event timers. Will also perform a delta between the values recorded from
 // `stopwatch_record_start_measurements` and the current values to give a measurement on the profile on the procedure executing
 // between the calls of `stopwatch_record_start_measurements` and `stopwatch_record_end_measurements`
-int stopwatch_record_end_measurements(int routine_call_num);
+int stopwatch_record_end_measurements(size_t routine_id);
 
-int stopwatch_get_measurement_results(size_t routine_call_num, struct StopwatchMeasurementResult *result);
+int stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasurementResult *result);
 
 // Prints out the results
 void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *result);

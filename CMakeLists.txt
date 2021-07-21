@@ -17,29 +17,7 @@ endif ()
 # Allow PAPI to be found via a find_package as it does not provide any CMake targets itself
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
-find_package(PAPI REQUIRED)
-
-add_library(stopwatch
-        STATIC
-        src/stopwatch.c
-        include/stopwatch/stopwatch.h
-        include/stopwatch/fstopwatch.F03
-        src/str_table.c
-        src/str_table.h
-        )
-
-# Consumers of this library are going to need its public headers but not the PAPI headers
-target_include_directories(stopwatch
-        PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        )
-
-target_link_libraries(stopwatch
-        PRIVATE
-        PAPI::PAPI
-        m
-        )
+add_subdirectory("src")
 
 # Build examples from the example directory
 option(BUILD_C_EXAMPLES "Build C example programs" OFF)
@@ -48,6 +26,34 @@ add_subdirectory("examples")
 
 # Small testing
 add_subdirectory("test")
+
+# ======================================================================================================================
+# Stopwatch Library
+# ======================================================================================================================
+
+find_package(PAPI REQUIRED)
+
+add_library(stopwatch
+        STATIC
+        src/stopwatch.c
+        ${CMAKE_SOURCE_DIR}/include/stopwatch/stopwatch.h
+        ${CMAKE_SOURCE_DIR}/include/stopwatch/fstopwatch.F03
+        )
+
+# Consumers of this library are going to need its public headers but not the PAPI headers
+target_include_directories(stopwatch
+        PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+        )
+
+target_link_libraries(stopwatch
+        PRIVATE
+        PAPI::PAPI
+        m
+        call_tree
+        str_table
+        )
 
 #=======================================================================================================================
 # Installation
