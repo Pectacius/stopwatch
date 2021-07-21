@@ -17,8 +17,8 @@ struct FunctionCallNode* create_function_call_node(size_t function_id) {
     node->function_id = function_id;
     // Set rest of the fields to default values
     node->stack_depth = 0;
-    node->callee = NULL;
-    node->next = NULL;
+    node->last_callee = NULL;
+    node->prev_node = NULL;
   }
   return node;
 }
@@ -26,9 +26,17 @@ struct FunctionCallNode* create_function_call_node(size_t function_id) {
 // TODO: Change this to an iterative algorithm to prevent possibility of hitting stack limit
 void destroy_function_call_node(struct FunctionCallNode* call_tree) {
   if (call_tree != NULL) {
-    destroy_function_call_node(call_tree->callee);
-    destroy_function_call_node(call_tree->next);
+    struct FunctionCallNode* children_nodes = call_tree->last_callee;
+    struct FunctionCallNode* delete_node = NULL;
+
+    while(children_nodes) {
+      delete_node = children_nodes;
+      children_nodes = children_nodes->prev_node;
+      destroy_function_call_node(delete_node);
+      delete_node = NULL;
+    }
     free(call_tree);
+    call_tree = NULL;
   }
 }
 
@@ -58,21 +66,12 @@ struct FunctionCallNode* function_call_node_grow_tree_from_array(const struct Fu
   return root;
 }
 
-void function_call_node_add_same_lvl(struct FunctionCallNode* original_node, struct FunctionCallNode* new_node) {
-  while(original_node->next) {
-    original_node = original_node->next;
-  }
-  original_node->next = new_node;
-  new_node->stack_depth = original_node->stack_depth;
-}
-
 void function_call_node_add_callee(struct FunctionCallNode* caller, struct FunctionCallNode* callee) {
-  if(caller->callee) {
-    function_call_node_add_same_lvl(caller->callee, callee);
-  } else {
-    caller->callee = callee;
-    callee->stack_depth = caller->stack_depth + 1;
+  if(caller->last_callee) {
+    callee->prev_node = caller->last_callee;
   }
+  caller->last_callee = callee;
+  callee->stack_depth = caller->stack_depth + 1;
 }
 
 size_t function_call_node_get_num_nodes(const struct FunctionCallNode* tree) {
@@ -80,10 +79,10 @@ size_t function_call_node_get_num_nodes(const struct FunctionCallNode* tree) {
     return 0;
   } else {
     size_t num_nodes = 1;
-    struct FunctionCallNode* children = tree->callee;
+    struct FunctionCallNode* children = tree->last_callee;
     while(children) {
       num_nodes += function_call_node_get_num_nodes(children);
-      children = children->next;
+      children = children->prev_node;
     }
     return num_nodes;
   }
@@ -115,13 +114,13 @@ bool function_call_tree_DF_iter_has_next(const struct FunctionCallTreeDFIter* it
 const struct FunctionCallNode* function_call_tree_DF_iter_next(struct FunctionCallTreeDFIter* iter) {
   struct FunctionCallNode* curr_node = iter->nodes_to_visit[iter->node_to_visit_size - 1];
   iter->node_to_visit_size--;
-  struct FunctionCallNode* curr_node_children = curr_node->callee;
+  struct FunctionCallNode* curr_node_children = curr_node->last_callee;
 
   const struct FunctionCallNode* next = curr_node;
 
   while(curr_node_children) {
     iter->nodes_to_visit[iter->node_to_visit_size] = curr_node_children;
-    curr_node_children = curr_node_children->next;
+    curr_node_children = curr_node_children->prev_node;
     iter->node_to_visit_size++;
   }
 
