@@ -249,6 +249,7 @@ void stopwatch_print_result_table() {
 
     struct FunctionCallNode* call_tree = function_call_node_grow_tree_from_array(function_list, num_functions);
     free(function_list);
+    function_list = NULL;
     struct FunctionCallTreeDFIter* iter = create_function_call_tree_DF_iter(call_tree);
     // Since the first function call is always a call to main and we do not want to print that, we skip that entry
     function_call_tree_DF_iter_next(iter);
@@ -262,14 +263,18 @@ void stopwatch_print_result_table() {
     }
 
     destroy_function_call_tree_DF_iter(iter);
+    iter = NULL;
     destroy_function_call_node(call_tree);
+    call_tree = NULL;
   }
 
   // Format print table
   char *table_str = make_table_str(table);
   printf("%s\n", table_str);
   free(table_str);
+  table_str = NULL;
   destroy_table(table);
+  table = NULL;
 }
 
 // =====================================================================================================================

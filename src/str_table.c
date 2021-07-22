@@ -44,16 +44,20 @@ int destroy_table(struct StringTable *table) {
     for (size_t idx = 0; idx < table->total_entries; idx++) {
       if (table->contents[idx] != NULL) {
         free(table->contents[idx]);
+        table->contents[idx] = NULL;
       }
     }
     free(table->contents);
+    table->contents = NULL;
   }
 
   if (table->indent_levels != NULL) {
     free(table->indent_levels);
+    table->indent_levels = NULL;
   }
 
   free(table);
+  table = NULL;
   return STR_TABLE_OK;
 }
 
@@ -77,6 +81,7 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
 
   if (table->contents[effective_idx] != NULL) {
     free(table->contents[effective_idx]);
+    table->contents[effective_idx] = NULL;
   }
   table->contents[effective_idx] = malloc(sizeof(char) * (strlen(value) + 1)); // Extra value for the null terminator
   strcpy(table->contents[effective_idx], value);
@@ -90,6 +95,7 @@ int add_entry_lld(const struct StringTable *table, long long value, struct Strin
   sprintf(num_str, "%lld", value);
   add_entry_str(table, num_str, pos);
   free(num_str);
+  num_str = NULL;
   return STR_TABLE_OK;
 }
 
@@ -159,6 +165,7 @@ char *make_table_str(const struct StringTable *table) {
   *cursor = '\0';
 
   free(col_widths);
+  col_widths = NULL;
   return table_str;
 }
 

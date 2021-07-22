@@ -17,8 +17,6 @@ endif ()
 # Allow PAPI to be found via a find_package as it does not provide any CMake targets itself
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 
-#add_subdirectory("src")
-
 # Build examples from the example directory
 option(BUILD_C_EXAMPLES "Build C example programs" OFF)
 option(BUILD_FORTRAN_EXAMPLES "Build Fortran example programs" OFF)
@@ -55,8 +53,6 @@ target_link_libraries(stopwatch
         PRIVATE
         PAPI::PAPI
         m
-        #call_tree
-        #str_table
         )
 
 #=======================================================================================================================
