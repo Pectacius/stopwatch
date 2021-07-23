@@ -89,7 +89,13 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
 }
 
 int add_entry_lld(const struct StringTable *table, long long value, struct StringTableCellPos pos) {
-  size_t num_digits = (int) (log10((double) value)) + 1;
+  size_t num_digits;
+  // Do not logarithm 0
+  if (value == 0) {
+    num_digits = 1;
+  } else {
+    num_digits = (int) (log10((double) value)) + 1;
+  }
 
   char *num_str = malloc(sizeof(char) * (num_digits + 1)); // Extra value for the null terminator
   sprintf(num_str, "%lld", value);

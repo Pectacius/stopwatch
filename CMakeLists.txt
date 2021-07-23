@@ -49,10 +49,12 @@ target_include_directories(stopwatch
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         )
 
+# Weird caveat with GCC where non-fixed address is enabled by default which causes some linking to this static lib
 target_link_libraries(stopwatch
         PRIVATE
         PAPI::PAPI
         m
+        -no-pie
         )
 
 #=======================================================================================================================
