@@ -10,21 +10,6 @@
 #define NULL_TERM_MAX_ROUTINE_NAME_LEN 16
 
 // =====================================================================================================================
-// Valid Events
-// =====================================================================================================================
-enum StopwatchEvents {
-  L1_CACHE_MISS = 1,
-  L2_CACHE_MISS,
-  L3_CACHE_MISS,
-  BRANCH_MISPREDICT,
-  BRANCH_PREDICT,
-  CYCLES_STALLED_RESOURCE,
-  TOTAL_CYCLES,
-  SP_FLOAT_OPS,
-  DP_FLOAT_OPS
-};
-
-// =====================================================================================================================
 // Structure holding results for a specific entry
 // =====================================================================================================================
 struct StopwatchMeasurementResult {
@@ -44,7 +29,7 @@ struct StopwatchMeasurementResult {
 // Initializes the event timers. Currently the events that are measured are hard coded. This will also start the
 // monotonic measurement clock as currently it is assumed that consumers would immediately start the clock after
 // initializing the stopwatch structure.
-int stopwatch_init(const enum StopwatchEvents *events_to_add, size_t num_of_events);
+int stopwatch_init();
 
 // Stops the monotonic event timers and cleans up resources used by the timer. Interestingly valgrind still reports a
 // memory leak with the PAPI specific resources
