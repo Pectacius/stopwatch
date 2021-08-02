@@ -25,24 +25,9 @@ module mod_stopwatch
         integer(c_int) event_names(STOPWATCH_MAX_EVENTS)
     end type StopwatchMeasurementResult
 
-    enum, bind(c)
-        enumerator :: L1_CACHE_MISS = 1
-        enumerator :: L2_CACHE_MISS
-        enumerator :: L3_CACHE_MISS
-        enumerator :: BRANCH_MISPREDICT
-        enumerator :: BRANCH_PREDICT
-        enumerator :: CYCLES_STALLED_RESOURCE
-        enumerator :: TOTAL_CYCLES
-        enumerator :: SP_FLOAT_OPS
-        enumerator :: DP_FLOAT_OPS
-    end enum
-
     interface
-        integer(c_int) function Fstopwatch_init(events_to_add, num_of_events) bind(c, name = 'stopwatch_init')
-            import :: c_int, c_size_t
-            ! Since enumerations are just integers, we make sure that the integer can hold the defined enumeration integer
-            integer(kind(L1_CACHE_MISS)), intent(in) :: events_to_add(*)
-            integer(c_size_t), value, intent(in) :: num_of_events
+        integer(c_int) function Fstopwatch_init() bind(c, name = 'stopwatch_init')
+            import :: c_int
         end function Fstopwatch_init
 
         subroutine Fstopwatch_destroy() bind(c, name = 'stopwatch_destroy')

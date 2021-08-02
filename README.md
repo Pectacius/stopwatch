@@ -63,17 +63,25 @@ In the CMakeLists.txt add:
 
 At the moment, the Stopwatch interface should be used like so:
 1. call `stopwatch_init` to initialize the appropriate structures and start the monotonic event timers. The events to be
-   measured can be specified by passing in the desired events as an array in the `events_to_add` argument and also the
-   array's length in the `num_of_events` argument.
-2. wrap the function(s) to measure with the calls to `stopwatch_record_start_measurements` and `stopwatch_record_end_measurements`
+   measured is specified via the `STOPWATCH_EVENTS` environment variable. Each event should be delimited with a colon `:`.
+   The events that can be added can be initially queried via the utility `papi_avail` that PAPI provides. If the
+   `STOPWATCH_EVENTS` variable is unset, the default events of `PAPI_TOT_CYC` and `PAPI_TOT_INS` are used.
+2. wrap the function(s) to measure with the calls to `stopwatch_record_start_measurements` and 
+   `stopwatch_record_end_measurements`. For `stopwatch_record_start_measurements` the first argument is the unique ID
+   for the routine that is to be measured. It is up to the user to ensure that this ID does not collide with another ID
+   of another routine that is measured. Note that ID `0` is reserved for the `main` function. The second argument is the
+   string representation of the routine name. The third argument is the ID of the caller of the current routine. Note
+   that for routines that are called by the main function, the caller ID would be `0`. For 
+   `stopwatch_record_end_measurements` the argument is the ID of the routine to complete the measurement for.
 3. call `stopwatch_destroy` to clean up the resources used
 
-Example of measuring the performance of a loop of matrix multiplication:
+##### Example:
+Example of measuring the performance of a loop of matrix multiplication where the number of cycles stalled waiting for
+resources, and the number of L1 cache misses are the selected events:
 ```c
 #include <stopwatch/stopwatch.h>
 int main() {
-  const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS}; // Events to measure
-  stopwatch_init(events, sizeof(StopwatchEvents)/ sizeof(enum StopwatchEvents)); // Initialize stopwatch
+  stopwatch_init(); // Initialize stopwatch
 
   int N = 500; // Size of matrix
   int itercount = 10; // Number of iterations
@@ -83,9 +91,11 @@ int main() {
   float (*C)[N] = initialize_mat(N);
 
   // Matrix multiply loop
+  // Called by main routine so the caller ID argument is 0
   stopwatch_record_start_measurements(1, "total-loop", 0); // Record start time of the entire loop
   for (int iter = 0; iter < itercount; iter++) {
     memset(C, 0, sizeof(float) * N * N); // clear C array
+    // Called by routine with ID zero so the caller ID argument is 1
     stopwatch_record_start_measurements(2, "single-cycle", 1); // read start time of a single cycle
     mat_mul(N, A, B, C); // Perform the multiplication C = A * B
     stopwatch_record_end_measurements(2); // read end time of a single cycle
@@ -94,6 +104,12 @@ int main() {
   stopwatch_print_result_table(); // Prints the results in a table format
   stopwatch_destroy(); // Clean up resources used
 }
+```
+
+Before running the binary, the environment variable `STOPWATCH_EVENTS` must be set. In this case it should be set to
+`PAPI_RES_STL:PAPI_L1_TCM`.
+```shell
+export STOPWATCH_EVENTS=PAPI_RES_STL:PAPI_L1_TCM
 ```
 
 The result should look similar to this:

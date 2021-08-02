@@ -58,7 +58,7 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 static int set_events();
 
-static int add_events(const char** events_to_add, size_t num_of_events);
+static int add_event(const char* event_to_add);
 
 static size_t find_num_entries();
 
@@ -284,60 +284,52 @@ void stopwatch_print_result_table() {
 static int set_events() {
   int ret_val;
   const char* event_env_val = getenv("STOPWATCH_EVENTS");
-  size_t num_of_events = 0;
+  // For if the environment variable exists
   if (event_env_val) {
-    // First pass through value get number of events. Precondition is that the environment variable is delimited via a
-    // colon as per standard on UNIX based systems.
-    for(size_t idx = 0; idx < strlen(event_env_val); idx++) {
-      if (event_env_val[idx] == ':') {
-        num_of_events++;
+    // A copy is made as strtok_r mutates the arguments
+    char* env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
+    char* delimiter = ":";
+    char* save_ptr;
+
+    for(char* token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL; token = strtok_r(NULL, delimiter, &save_ptr)) {
+      ret_val = add_event(token);
+      if (ret_val != STOPWATCH_OK) {
+        break;
       }
     }
-    // Second pass through get each value
-    char** selected_events = calloc(num_of_events, sizeof(char*));
-    size_t val_start_idx = 0; // Represents the index of the start of the current value to be parsed
-    size_t curr_event_num = 0; // Represents the number of elements that have been already parsed
-    for(size_t idx = 0; idx < strlen(event_env_val); idx++) {
-      if (event_env_val[idx] == ':') {
-        selected_events[curr_event_num] = malloc(sizeof(char) * (idx - val_start_idx + 1));
-        strncpy(selected_events[curr_event_num], event_env_val + val_start_idx, idx - val_start_idx);
-        selected_events[curr_event_num][idx - val_start_idx] = '\0'; // Insert null character
-        val_start_idx = idx + 1;
-        curr_event_num++;
-      }
-    }
-    ret_val = add_events((const char **) selected_events, num_of_events);
-    for(size_t item = 0; item < num_of_events; item++) {
-      if (selected_events[item]) {
-        free(selected_events[item]);
-        selected_events[item] = NULL;
-      }
-    }
-    free(selected_events);
-    selected_events = NULL;
-  } else {
+    free(env_var_copy_elem);
+    env_var_copy_elem = NULL;
+  } else { // For if the environment variable does not exist
     const char* default_events[] = {"PAPI_TOT_CYC", "PAPI_TOT_INS"};
-    num_of_events = sizeof (default_events) / sizeof (char*);
-    ret_val = add_events(default_events, num_of_events);
+    for(size_t idx = 0; idx < sizeof (default_events) / sizeof (char*); idx++) {
+      ret_val = add_event(default_events[idx]);
+      if (ret_val != STOPWATCH_OK) {
+        break;
+      }
+    }
   }
   return ret_val;
 }
 
-static int add_events(const char** events_to_add, size_t num_of_events) {
-  if (num_of_events > STOPWATCH_MAX_EVENTS) {
+static int add_event(const char* event_to_add) {
+  // Prevent adding more events than maximum
+  if (num_registered_events >= STOPWATCH_MAX_EVENTS) {
     return STOPWATCH_ERR;
   }
   int event_code = PAPI_NULL;
-  for (unsigned int idx = 0; idx < num_of_events; idx++) {
-    if (PAPI_event_name_to_code(events_to_add[idx], &event_code) != PAPI_OK) {
-      return STOPWATCH_ERR;
-    }
-    events[num_registered_events] = event_code;
-    if (PAPI_add_event(event_set, event_code) != PAPI_OK) {
-      return STOPWATCH_ERR;
-    }
-    num_registered_events++;
+
+  // Attempt to convert string to valid event code
+  if (PAPI_event_name_to_code(event_to_add, &event_code) != PAPI_OK) {
+    return STOPWATCH_ERR;
   }
+
+  // Attempt to add event code
+  if (PAPI_add_event(event_set, event_code) != PAPI_OK) {
+    return STOPWATCH_ERR;
+  }
+  events[num_registered_events] = event_code;
+  num_registered_events++;
+
   return STOPWATCH_OK;
 }
 
@@ -365,7 +357,7 @@ static void set_header(const struct StringTable *table) {
     const unsigned int effective_col_idx = num_columns - num_registered_events + entry_idx;
 
     char event_code_string[PAPI_MAX_STR_LEN];
-    int ret_val = PAPI_event_code_to_name(events[entry_idx], event_code_string);
+    PAPI_event_code_to_name(events[entry_idx], event_code_string);
     add_entry_str(table, event_code_string, (struct StringTableCellPos) {0, effective_col_idx});
   }
 }

@@ -23,9 +23,7 @@ void test_stopwatch_perf_mat_mul() {
   }
   memset(C, 0, sizeof(float) * N * N);
 
-  const enum StopwatchEvents events[] = {L1_CACHE_MISS, CYCLES_STALLED_RESOURCE};
-  const unsigned int num_events = 2;
-  assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+  assert(stopwatch_init() == STOPWATCH_OK);
   assert(stopwatch_record_start_measurements(1, "mat-mul", 0) == STOPWATCH_OK);
   row_major(N, A, B, C);
   assert(stopwatch_record_end_measurements(1) == STOPWATCH_OK);
@@ -41,22 +39,17 @@ void test_stopwatch_perf_mat_mul() {
   // accurately check these values while also being hardware independent.
   assert(result.total_real_cyc > 0);
   assert(result.total_real_usec > 0);
-  assert(result.total_event_values[0] > 0); // L1 cache misses
-  assert(result.total_event_values[1] > 0); // Total cycles stalled waiting on resources
+  assert(result.total_event_values[0] > 0); // Total cycles
+  assert(result.total_event_values[1] > 0); // Total instructions
 
   assert(result.total_times_called == 1);
-
-  // the total amount of cpu cycles should always be greater than the cycles waiting for resources, otherwise the cpu
-  // does no work which cannot be as floating point operations are being performed.
-  assert(result.total_real_cyc > result.total_event_values[1]);
 
   stopwatch_destroy();
 }
 
 // Repeatedly does the same matrix multiplication to test the accumulation feature
 void test_stopwatch_perf_mat_mul_loop() {
-  const enum StopwatchEvents events[] = {CYCLES_STALLED_RESOURCE, L1_CACHE_MISS};
-  assert(stopwatch_init(events, 2) == STOPWATCH_OK);
+  assert(stopwatch_init() == STOPWATCH_OK);
 
   int N = 1000;
   int itercount = 10;
@@ -119,14 +112,12 @@ void test_stopwatch_perf_mat_mul_loop() {
   assert(total_loop.total_event_values[0] > 0);
   assert(total_loop.total_event_values[1] > 0);
   assert(total_loop.total_times_called == 1);
-  assert(total_loop.total_real_cyc > total_loop.total_event_values[1]);
 
   assert(single_cycle.total_real_cyc > 0);
   assert(single_cycle.total_real_usec > 0);
   assert(single_cycle.total_event_values[0] > 0);
   assert(single_cycle.total_event_values[1] > 0);
   assert(single_cycle.total_times_called == itercount);
-  assert(single_cycle.total_real_cyc > single_cycle.total_event_values[1]);
 
   //Also the outer loop values should be approximately the same as the accumulated inner loop values.
   // At the moment a 5% error will be considered acceptable

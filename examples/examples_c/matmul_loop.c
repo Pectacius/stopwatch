@@ -7,8 +7,8 @@
 void row_major(int N, float A[N][N], float B[N][N], float C[N][N]);
 
 int main() {
-  //const enum StopwatchEvents events[] = {SP_FLOAT_OPS};
-  if (stopwatch_init(/*events, 1*/) != STOPWATCH_OK) {
+
+  if (stopwatch_init() != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     exit(-1);
   }

@@ -32,8 +32,7 @@ int main() {
 
   struct StopwatchMeasurementResult result; // structure to hold the results
 
-  const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
-  if (stopwatch_init(events, 2) != STOPWATCH_OK) {
+  if (stopwatch_init() != STOPWATCH_OK) {
     printf("Error initializing stopwatch\n");
     return -1;
   }
