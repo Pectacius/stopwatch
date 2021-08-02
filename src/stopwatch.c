@@ -56,9 +56,11 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 // Private helper functions definitions
 // =====================================================================================================================
-static int set_events();
+static int initialize_event_set();
 
-static int add_event(const char* event_to_add);
+static int configure_events();
+
+static int add_event(const char *event_to_add);
 
 static size_t find_num_entries();
 
@@ -98,15 +100,15 @@ int stopwatch_init() {
       return STOPWATCH_ERR;
     }
 
-    ret_val = PAPI_create_eventset(&event_set);
-    if (ret_val != PAPI_OK) {
+    ret_val = initialize_event_set();
+    if (ret_val != STOPWATCH_OK) {
       stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
     // Attempt to add each event selected in the environment variable to the event set. If not all can be added
     // STOPWATCH_ERR will be returned
-    ret_val = set_events();
+    ret_val = configure_events();
     if (ret_val != STOPWATCH_OK) {
       stopwatch_destroy();
       return STOPWATCH_ERR;
@@ -165,7 +167,8 @@ int stopwatch_record_start_measurements(size_t routine_id, const char *function_
 }
 
 int stopwatch_record_end_measurements(size_t routine_id) {
-  int PAPI_ret = PAPI_read(event_set, tmp_event_results);
+  long long results[STOPWATCH_MAX_EVENTS];
+  int PAPI_ret = PAPI_read(event_set, /*tmp_event_results*/results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
@@ -180,8 +183,12 @@ int stopwatch_record_end_measurements(size_t routine_id) {
 
   // Accumulate the event(s) results
   for (unsigned int idx = 0; idx < num_registered_events; idx++) {
+    if ((results[idx] - readings[routine_id].start_events_measurements[idx]) < 0) {
+      printf("Issue: Negative value..\n");
+      exit(1);
+    }
     readings[routine_id].total_events_measurements[idx] +=
-        (tmp_event_results[idx] - readings[routine_id].start_events_measurements[idx]);
+        (/*tmp_event_results[idx]*/ results[idx] - readings[routine_id].start_events_measurements[idx]);
   }
 
   return STOPWATCH_OK;
@@ -232,12 +239,25 @@ void stopwatch_print_result_table() {
   const size_t columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;
   const size_t rows = num_functions + 1; // Extra row for header
 
+  for(int i = 0; i < STOPWATCH_MAX_FUNCTION_CALLS; i++) {
+    if(readings[i].total_times_called > 0) {
+      printf("%s\n", readings[i].routine_name);
+      for(int j = 0; j < num_registered_events; j++) {
+        char event_code_string[PAPI_MAX_STR_LEN];
+        PAPI_event_code_to_name(events[j], event_code_string);
+        printf("%s: %lld\n", event_code_string, readings[i].total_events_measurements[j]);
+      }
+      printf("\n");
+    }
+  }
+
+
   struct StringTable *table = create_table(columns, rows, true, INDENT_SPACING);
 
   set_header(table);
 
   if (num_functions > 0) {
-    struct FunctionNode* function_list = malloc(sizeof(struct FunctionNode) * num_functions);
+    struct FunctionNode *function_list = malloc(sizeof(struct FunctionNode) * num_functions);
     size_t entry_num = 0;
     for (size_t idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
       if (readings[idx].total_times_called == 0) {
@@ -248,18 +268,18 @@ void stopwatch_print_result_table() {
       entry_num++;
     }
 
-    struct FunctionCallNode* call_tree = function_call_node_grow_tree_from_array(function_list, num_functions);
+    struct FunctionCallNode *call_tree = function_call_node_grow_tree_from_array(function_list, num_functions);
     free(function_list);
     function_list = NULL;
-    struct FunctionCallTreeDFIter* iter = create_function_call_tree_DF_iter(call_tree);
+    struct FunctionCallTreeDFIter *iter = create_function_call_tree_DF_iter(call_tree);
     // Since the first function call is always a call to main and we do not want to print that, we skip that entry
     function_call_tree_DF_iter_next(iter);
 
     size_t row_cursor = 1;
-    while(function_call_tree_DF_iter_has_next(iter)) {
-      const struct FunctionCallNode* next = function_call_tree_DF_iter_next(iter);
+    while (function_call_tree_DF_iter_has_next(iter)) {
+      const struct FunctionCallNode *next = function_call_tree_DF_iter_next(iter);
       // Subtract from stack depth as we want the stack depth relative to the call to main where main has a depth of 0
-      set_body_row(table, row_cursor, next->function_id, next->stack_depth-1, readings[next->function_id]);
+      set_body_row(table, row_cursor, next->function_id, next->stack_depth - 1, readings[next->function_id]);
       row_cursor++;
     }
 
@@ -281,17 +301,49 @@ void stopwatch_print_result_table() {
 // =====================================================================================================================
 // Private helper functions implementation
 // =====================================================================================================================
-static int set_events() {
+static int initialize_event_set() {
+  int ret_val = PAPI_create_eventset(&event_set);
+  if (ret_val != PAPI_OK) {
+    return STOPWATCH_ERR;
+  }
+
+  // Assign to CPU component. Event sets must be bound to a component before set_multiplex can be called
+  ret_val = PAPI_assign_eventset_component(event_set, 0);
+  if (ret_val != PAPI_OK) {
+    return STOPWATCH_ERR;
+  }
+
+  const char *event_cfg_val = getenv("STOPWATCH_MULTIPLEX");
+  if (event_cfg_val) {
+    if (strcmp(event_cfg_val, "ON") == 0) {
+      ret_val = PAPI_multiplex_init();
+      if (ret_val != PAPI_OK) {
+        return STOPWATCH_ERR;
+      }
+      ret_val = PAPI_set_multiplex(event_set);
+      if (ret_val != PAPI_OK) {
+        return STOPWATCH_ERR;
+      }
+    } else if (strcmp(event_cfg_val, "OFF") != 0) {
+      return STOPWATCH_ERR;
+    }
+  }
+  // If ENV does not exist, assume that multiplexing is OFF
+  return STOPWATCH_OK;
+}
+
+static int configure_events() {
   int ret_val;
-  const char* event_env_val = getenv("STOPWATCH_EVENTS");
+  const char *event_env_val = getenv("STOPWATCH_EVENTS");
   // For if the environment variable exists
   if (event_env_val) {
     // A copy is made as strtok_r mutates the arguments
-    char* env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
-    char* delimiter = ":";
-    char* save_ptr;
+    char *env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
+    char *delimiter = ":";
+    char *save_ptr;
 
-    for(char* token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL; token = strtok_r(NULL, delimiter, &save_ptr)) {
+    for (char *token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL;
+         token = strtok_r(NULL, delimiter, &save_ptr)) {
       ret_val = add_event(token);
       if (ret_val != STOPWATCH_OK) {
         break;
@@ -300,8 +352,8 @@ static int set_events() {
     free(env_var_copy_elem);
     env_var_copy_elem = NULL;
   } else { // For if the environment variable does not exist
-    const char* default_events[] = {"PAPI_TOT_CYC", "PAPI_TOT_INS"};
-    for(size_t idx = 0; idx < sizeof (default_events) / sizeof (char*); idx++) {
+    const char *default_events[] = {"PAPI_TOT_CYC", "PAPI_TOT_INS"};
+    for (size_t idx = 0; idx < sizeof(default_events) / sizeof(char *); idx++) {
       ret_val = add_event(default_events[idx]);
       if (ret_val != STOPWATCH_OK) {
         break;
@@ -311,7 +363,7 @@ static int set_events() {
   return ret_val;
 }
 
-static int add_event(const char* event_to_add) {
+static int add_event(const char *event_to_add) {
   // Prevent adding more events than maximum
   if (num_registered_events >= STOPWATCH_MAX_EVENTS) {
     return STOPWATCH_ERR;
