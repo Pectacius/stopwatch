@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 
 // =====================================================================================================================
 // Private helpers definitions
@@ -15,6 +16,8 @@ static void set_table_border(char **cursor, size_t row_width);
 static void set_table_entry(char **cursor, const size_t *col_widths, const struct StringTable *table, unsigned int row_num);
 
 static void set_whitespace(char **cursor, size_t whitespace_count);
+
+static unsigned int num_digits_lld(long long value);
 
 // =====================================================================================================================
 // Public functions implementations
@@ -89,13 +92,9 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
 }
 
 int add_entry_lld(const struct StringTable *table, long long value, struct StringTableCellPos pos) {
-  size_t num_digits;
-  // Do not logarithm 0
-  if (value == 0) {
-    num_digits = 1;
-  } else {
-    num_digits = (int) (log10((double) value)) + 1;
-  }
+  size_t num_digits = num_digits_lld(value);
+
+  if (value < 0) num_digits++; // Add extra place for negative sign
 
   char *num_str = malloc(sizeof(char) * (num_digits + 1)); // Extra value for the null terminator
   sprintf(num_str, "%lld", value);
@@ -241,4 +240,14 @@ static void set_whitespace(char **cursor, size_t whitespace_count) {
     **cursor = ' ';
     (*cursor)++;
   }
+}
+
+static unsigned int num_digits_lld(long long value) {
+  unsigned int digits = 1;
+  if (value < 0) value = (value == LLONG_MIN) ? LLONG_MAX: -value;
+  while (value > 9) {
+    value /= 10;
+    digits++;
+  }
+  return digits;
 }

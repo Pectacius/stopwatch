@@ -167,8 +167,7 @@ int stopwatch_record_start_measurements(size_t routine_id, const char *function_
 }
 
 int stopwatch_record_end_measurements(size_t routine_id) {
-  long long results[STOPWATCH_MAX_EVENTS];
-  int PAPI_ret = PAPI_read(event_set, /*tmp_event_results*/results);
+  int PAPI_ret = PAPI_read(event_set, tmp_event_results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
@@ -183,12 +182,8 @@ int stopwatch_record_end_measurements(size_t routine_id) {
 
   // Accumulate the event(s) results
   for (unsigned int idx = 0; idx < num_registered_events; idx++) {
-    if ((results[idx] - readings[routine_id].start_events_measurements[idx]) < 0) {
-      printf("Issue: Negative value..\n");
-      exit(1);
-    }
     readings[routine_id].total_events_measurements[idx] +=
-        (/*tmp_event_results[idx]*/ results[idx] - readings[routine_id].start_events_measurements[idx]);
+        (tmp_event_results[idx] - readings[routine_id].start_events_measurements[idx]);
   }
 
   return STOPWATCH_OK;
@@ -239,7 +234,7 @@ void stopwatch_print_result_table() {
   const size_t columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;
   const size_t rows = num_functions + 1; // Extra row for header
 
-  for(int i = 0; i < STOPWATCH_MAX_FUNCTION_CALLS; i++) {
+/*  for(int i = 0; i < STOPWATCH_MAX_FUNCTION_CALLS; i++) {
     if(readings[i].total_times_called > 0) {
       printf("%s\n", readings[i].routine_name);
       for(int j = 0; j < num_registered_events; j++) {
@@ -249,7 +244,7 @@ void stopwatch_print_result_table() {
       }
       printf("\n");
     }
-  }
+  }*/
 
 
   struct StringTable *table = create_table(columns, rows, true, INDENT_SPACING);
