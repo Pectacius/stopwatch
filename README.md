@@ -65,7 +65,10 @@ At the moment, the Stopwatch interface should be used like so:
 1. call `stopwatch_init` to initialize the appropriate structures and start the monotonic event timers. The events to be
    measured is specified via the `STOPWATCH_EVENTS` environment variable. Each event should be delimited with a colon `:`.
    The events that can be added can be initially queried via the utility `papi_avail` that PAPI provides. If the
-   `STOPWATCH_EVENTS` variable is unset, the default events of `PAPI_TOT_CYC` and `PAPI_TOT_INS` are used.
+   `STOPWATCH_EVENTS` variable is unset, the default events of `PAPI_TOT_CYC` and `PAPI_TOT_INS` are used. The
+   environment variable `STOPWATCH_MULTIPLEX` should be set if multiplexing is to be enabled. A positive integer can be
+   given to the `STOPWATCH_MULTIPLEX` variable to specify the multiplexing time slice otherwise the default time slice
+   will be used.
 2. wrap the function(s) to measure with the calls to `stopwatch_record_start_measurements` and 
    `stopwatch_record_end_measurements`. For `stopwatch_record_start_measurements` the first argument is the unique ID
    for the routine that is to be measured. It is up to the user to ensure that this ID does not collide with another ID

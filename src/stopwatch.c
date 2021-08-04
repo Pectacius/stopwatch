@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -310,17 +311,31 @@ static int initialize_event_set() {
 
   const char *event_cfg_val = getenv("STOPWATCH_MULTIPLEX");
   if (event_cfg_val) {
-    if (strcmp(event_cfg_val, "ON") == 0) {
-      ret_val = PAPI_multiplex_init();
-      if (ret_val != PAPI_OK) {
-        return STOPWATCH_ERR;
-      }
-      ret_val = PAPI_set_multiplex(event_set);
-      if (ret_val != PAPI_OK) {
-        return STOPWATCH_ERR;
-      }
-    } else if (strcmp(event_cfg_val, "OFF") != 0) {
+    ret_val = PAPI_multiplex_init();
+    if (ret_val != PAPI_OK) {
       return STOPWATCH_ERR;
+    }
+    ret_val = PAPI_set_multiplex(event_set);
+    if (ret_val != PAPI_OK) {
+      return STOPWATCH_ERR;
+    }
+    // Use default timer value if no value is specified
+    if (event_cfg_val[0] != '\0') {
+      char* end;
+      errno = 0;
+      long long timer_slice = strtoll(event_cfg_val, &end, 10);
+      // Ensure the entire string is valid
+      if (*end == '\0' && errno == 0 && timer_slice >= LLONG_MIN && timer_slice <= LLONG_MAX) {
+        PAPI_option_t mpx_option;
+        memset(&mpx_option,0x0,sizeof(mpx_option));
+        // We can do this cast without worrying about over/under flow as the range was already checked
+        mpx_option.itimer.ns = (int)timer_slice;
+        if (PAPI_set_opt(PAPI_DEF_ITIMER_NS, &mpx_option) != PAPI_OK) {
+          return STOPWATCH_ERR;
+        }
+      } else {
+        return STOPWATCH_ERR;
+      }
     }
   }
   // If ENV does not exist, assume that multiplexing is OFF
