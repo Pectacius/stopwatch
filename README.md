@@ -63,7 +63,7 @@ In the CMakeLists.txt add:
 
 At the moment, the Stopwatch interface should be used like so:
 1. call `stopwatch_init` to initialize the appropriate structures and start the monotonic event timers. The events to be
-   measured is specified via the `STOPWATCH_EVENTS` environment variable. Each event should be delimited with a colon `:`.
+   measured is specified via the `STOPWATCH_EVENTS` environment variable. Each event should be delimited with a comma `,`.
    The events that can be added can be initially queried via the utility `papi_avail` that PAPI provides. If the
    `STOPWATCH_EVENTS` variable is unset, the default events of `PAPI_TOT_CYC` and `PAPI_TOT_INS` are used.
 2. wrap the function(s) to measure with the calls to `stopwatch_record_start_measurements` and 
@@ -109,7 +109,7 @@ int main() {
 Before running the binary, the environment variable `STOPWATCH_EVENTS` must be set. In this case it should be set to
 `PAPI_RES_STL:PAPI_L1_TCM`.
 ```shell
-export STOPWATCH_EVENTS=PAPI_RES_STL:PAPI_L1_TCM
+export STOPWATCH_EVENTS=PAPI_RES_STL,PAPI_L1_TCM
 ```
 
 The result should look similar to this:

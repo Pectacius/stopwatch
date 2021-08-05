@@ -288,7 +288,7 @@ static int set_events() {
   if (event_env_val) {
     // A copy is made as strtok_r mutates the arguments
     char* env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
-    char* delimiter = ":";
+    char* delimiter = ",";
     char* save_ptr;
 
     for(char* token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL; token = strtok_r(NULL, delimiter, &save_ptr)) {
