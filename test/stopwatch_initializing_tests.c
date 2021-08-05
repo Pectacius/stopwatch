@@ -7,21 +7,17 @@
 
 // Initialize and destroy the event timers once
 void test_stopwatch_setup_teardown() {
-  const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
-  const unsigned int num_events = 2;
-  assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+  assert(stopwatch_init() == STOPWATCH_OK);
   stopwatch_destroy();
 }
 
 // Initialize and destroy the event timers multiple times. This will assure that paired calls to `init_event_timers` and
 // `destroy_event_timers` should always succeed.
 void test_stopwatch_setup_teardown_multiple_times() {
-  const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
-  const unsigned int num_events = 2;
 // Call `init_event_timer` and `destroy_event_timer`
   const int max_iterations = 10;
   for (int i = 0; i < max_iterations; i++) {
-    assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
+    assert(stopwatch_init() == STOPWATCH_OK);
     stopwatch_destroy();
   }
 }
@@ -29,10 +25,8 @@ void test_stopwatch_setup_teardown_multiple_times() {
 // This test case aims to mimic the situation where the event timers have already be initialized and there is another
 // call to initialize the event timers.
 void test_stopwatch_setup_twice() {
-  const enum StopwatchEvents events[] = {TOTAL_CYCLES, L1_CACHE_MISS};
-  const unsigned int num_events = 2;
-  assert(stopwatch_init(events, num_events) == STOPWATCH_OK);
-  assert(stopwatch_init(events, num_events) == STOPWATCH_ERR);
+  assert(stopwatch_init() == STOPWATCH_OK);
+  assert(stopwatch_init() == STOPWATCH_ERR);
   stopwatch_destroy();
 }
 

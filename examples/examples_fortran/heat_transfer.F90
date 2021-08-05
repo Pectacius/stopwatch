@@ -9,9 +9,6 @@ program heat_transfer
     integer(kind=4), parameter :: num_time_steps = 1000
     integer(kind=4), parameter :: num_elem = 1000 ! Number of finite elements per side of the plane
     real(kind=8), dimension(num_elem, num_elem) :: plane
-    integer(c_size_t), parameter :: num_events = 2
-    integer(kind=kind(L1_CACHE_MISS)), dimension(num_events), parameter :: events = (/TOTAL_CYCLES, L1_CACHE_MISS /)
-
 
     integer :: ret_val
     integer :: i
@@ -23,7 +20,7 @@ program heat_transfer
     plane(1,:) = 10.0
 
     ! Initialize stopwatch
-    ret_val = Fstopwatch_init(events, num_events)
+    ret_val = Fstopwatch_init()
     if (ret_val /= STOPWATCH_OK) then
         print *, "Error initializing stopwatch"
         stop -1

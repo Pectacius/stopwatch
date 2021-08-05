@@ -56,11 +56,11 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 // Private helper functions definitions
 // =====================================================================================================================
-static int add_events(const enum StopwatchEvents events_to_add[], size_t num_of_events);
+static int set_events();
+
+static int add_event(const char* event_to_add);
 
 static size_t find_num_entries();
-
-static int map_stopwatch_to_papi(enum StopwatchEvents stopwatch_event);
 
 static void set_header(const struct StringTable *table);
 
@@ -77,7 +77,7 @@ static void set_body_row(const struct StringTable *table,
 // Initializes PAPI library. Should only be called once.
 // Will return STOPWATCH_OK if successful
 // Will return STOPWATCH_ERR if fail
-int stopwatch_init(const enum StopwatchEvents *events_to_add, size_t num_of_events) {
+int stopwatch_init() {
   // Check if stopwatch is not already initialized
   if (!initialized_stopwatch) {
     // Reset the function names and times called to default values values
@@ -104,8 +104,9 @@ int stopwatch_init(const enum StopwatchEvents *events_to_add, size_t num_of_even
       return STOPWATCH_ERR;
     }
 
-    // Attempt to add each event to the event set. If not all can be added STOPWATCH_ERR will be returned
-    ret_val = add_events(events_to_add, num_of_events);
+    // Attempt to add each event selected in the environment variable to the event set. If not all can be added
+    // STOPWATCH_ERR will be returned
+    ret_val = set_events();
     if (ret_val != STOPWATCH_OK) {
       stopwatch_destroy();
       return STOPWATCH_ERR;
@@ -280,38 +281,56 @@ void stopwatch_print_result_table() {
 // =====================================================================================================================
 // Private helper functions implementation
 // =====================================================================================================================
+static int set_events() {
+  int ret_val;
+  const char* event_env_val = getenv("STOPWATCH_EVENTS");
+  // For if the environment variable exists
+  if (event_env_val) {
+    // A copy is made as strtok_r mutates the arguments
+    char* env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
+    char* delimiter = ",";
+    char* save_ptr;
 
-static int add_events(const enum StopwatchEvents events_to_add[], size_t num_of_events) {
-  if (num_of_events > STOPWATCH_MAX_EVENTS) {
-    return STOPWATCH_ERR;
-  }
-  for (unsigned int idx = 0; idx < num_of_events; idx++) {
-    const int papi_event_code = map_stopwatch_to_papi(events_to_add[idx]);
-    events[idx] = papi_event_code;
-    const int papi_ret_val = PAPI_add_event(event_set, papi_event_code);
-    if (papi_ret_val != PAPI_OK) {
-      return STOPWATCH_ERR;
+    for(char* token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL; token = strtok_r(NULL, delimiter, &save_ptr)) {
+      ret_val = add_event(token);
+      if (ret_val != STOPWATCH_OK) {
+        break;
+      }
     }
-    num_registered_events++;
+    free(env_var_copy_elem);
+    env_var_copy_elem = NULL;
+  } else { // For if the environment variable does not exist
+    const char* default_events[] = {"PAPI_TOT_CYC", "PAPI_TOT_INS"};
+    for(size_t idx = 0; idx < sizeof (default_events) / sizeof (char*); idx++) {
+      ret_val = add_event(default_events[idx]);
+      if (ret_val != STOPWATCH_OK) {
+        break;
+      }
+    }
   }
-  return STOPWATCH_OK;
+  return ret_val;
 }
 
-static int map_stopwatch_to_papi(enum StopwatchEvents stopwatch_event) {
-  // An array using indices as hashing may produce a more cleaner solution
-  switch (stopwatch_event) {
-    case L1_CACHE_MISS:return PAPI_L1_TCM;
-    case L2_CACHE_MISS:return PAPI_L2_TCM;
-    case L3_CACHE_MISS:return PAPI_L3_TCM;
-    case BRANCH_MISPREDICT:return PAPI_BR_MSP;
-    case BRANCH_PREDICT:return PAPI_BR_PRC;
-    case CYCLES_STALLED_RESOURCE:return PAPI_RES_STL;
-    case TOTAL_CYCLES:return PAPI_TOT_CYC;
-    case SP_FLOAT_OPS:return PAPI_SP_OPS;
-    case DP_FLOAT_OPS:return PAPI_DP_OPS;
-      // Execution should never hit this branch
-    default:return STOPWATCH_INVALID_EVENT;
+static int add_event(const char* event_to_add) {
+  // Prevent adding more events than maximum
+  if (num_registered_events >= STOPWATCH_MAX_EVENTS) {
+    return STOPWATCH_ERR;
   }
+  int event_code = PAPI_NULL;
+
+  // Attempt to convert string to valid event code
+  if (PAPI_event_name_to_code(event_to_add, &event_code) != PAPI_OK) {
+    return STOPWATCH_ERR;
+  }
+
+  // Attempt to add event code
+  if (PAPI_add_event(event_set, event_code) != PAPI_OK) {
+    return STOPWATCH_ERR;
+  }
+  events[num_registered_events] = event_code;
+  num_registered_events++;
+
+  return STOPWATCH_OK;
 }
 
 static size_t find_num_entries() {
