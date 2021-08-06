@@ -9,7 +9,6 @@
 #include "call_tree.h"
 #include <papi.h>
 
-#define STOPWATCH_INVALID_EVENT 1
 #define INDENT_SPACING 4
 #define STOPWATCH_NUM_TIMERS 2            // Number of different timers. Corresponds to real cycles and real microseconds timers
 #define STOPWATCH_MAX_FUNCTION_CALLS 500  // Maximum number of measurement entries
@@ -56,9 +55,9 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 // Private helper functions definitions
 // =====================================================================================================================
-static int set_events();
+static enum StopwatchStatus set_events();
 
-static int add_event(const char* event_to_add);
+static enum StopwatchStatus add_event(const char* event_to_add);
 
 static size_t find_num_entries();
 
@@ -77,7 +76,7 @@ static void set_body_row(const struct StringTable *table,
 // Initializes PAPI library. Should only be called once.
 // Will return STOPWATCH_OK if successful
 // Will return STOPWATCH_ERR if fail
-int stopwatch_init() {
+enum StopwatchStatus stopwatch_init() {
   // Check if stopwatch is not already initialized
   if (!initialized_stopwatch) {
     // Reset the function names and times called to default values values
@@ -109,7 +108,7 @@ int stopwatch_init() {
     ret_val = set_events();
     if (ret_val != STOPWATCH_OK) {
       stopwatch_destroy();
-      return STOPWATCH_ERR;
+      return ret_val;
     }
 
     // Start the monotonic clock
@@ -144,7 +143,7 @@ void stopwatch_destroy() {
   initialized_stopwatch = false;
 }
 
-int stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id) {
+enum StopwatchStatus stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id) {
   int PAPI_ret = PAPI_read(event_set, readings[routine_id].start_events_measurements);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
@@ -164,7 +163,7 @@ int stopwatch_record_start_measurements(size_t routine_id, const char *function_
   return STOPWATCH_OK;
 }
 
-int stopwatch_record_end_measurements(size_t routine_id) {
+enum StopwatchStatus stopwatch_record_end_measurements(size_t routine_id) {
   int PAPI_ret = PAPI_read(event_set, tmp_event_results);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
@@ -199,7 +198,7 @@ void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *resu
   }
 }
 
-int stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasurementResult *result) {
+enum StopwatchStatus stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasurementResult *result) {
   if (routine_id >= STOPWATCH_MAX_FUNCTION_CALLS) {
     return STOPWATCH_ERR;
   }
@@ -281,7 +280,7 @@ void stopwatch_print_result_table() {
 // =====================================================================================================================
 // Private helper functions implementation
 // =====================================================================================================================
-static int set_events() {
+static enum StopwatchStatus set_events() {
   int ret_val;
   const char* event_env_val = getenv("STOPWATCH_EVENTS");
   // For if the environment variable exists
@@ -311,21 +310,21 @@ static int set_events() {
   return ret_val;
 }
 
-static int add_event(const char* event_to_add) {
+static enum StopwatchStatus add_event(const char* event_to_add) {
   // Prevent adding more events than maximum
   if (num_registered_events >= STOPWATCH_MAX_EVENTS) {
-    return STOPWATCH_ERR;
+    return STOPWATCH_TOO_MANY_EVENTS;
   }
   int event_code = PAPI_NULL;
 
   // Attempt to convert string to valid event code
   if (PAPI_event_name_to_code(event_to_add, &event_code) != PAPI_OK) {
-    return STOPWATCH_ERR;
+    return STOPWATCH_INVALID_EVENT;
   }
 
   // Attempt to add event code
   if (PAPI_add_event(event_set, event_code) != PAPI_OK) {
-    return STOPWATCH_ERR;
+    return STOPWATCH_INVALID_EVENT_COMB;
   }
   events[num_registered_events] = event_code;
   num_registered_events++;

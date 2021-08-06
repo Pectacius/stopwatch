@@ -2,9 +2,14 @@
 #define STOPWATCH_STOPWATCH_H
 
 #include <stddef.h>
-// Function status constants
-#define STOPWATCH_OK 0
-#define STOPWATCH_ERR (-1)
+// Function return statuses
+enum StopwatchStatus {
+  STOPWATCH_OK,
+  STOPWATCH_TOO_MANY_EVENTS,
+  STOPWATCH_INVALID_EVENT,
+  STOPWATCH_INVALID_EVENT_COMB,
+  STOPWATCH_ERR,
+};
 
 #define STOPWATCH_MAX_EVENTS 10
 #define NULL_TERM_MAX_ROUTINE_NAME_LEN 16
@@ -29,7 +34,7 @@ struct StopwatchMeasurementResult {
 // Initializes the event timers. Currently the events that are measured are hard coded. This will also start the
 // monotonic measurement clock as currently it is assumed that consumers would immediately start the clock after
 // initializing the stopwatch structure.
-int stopwatch_init();
+enum StopwatchStatus stopwatch_init();
 
 // Stops the monotonic event timers and cleans up resources used by the timer. Interestingly valgrind still reports a
 // memory leak with the PAPI specific resources
@@ -40,14 +45,14 @@ void stopwatch_destroy();
 // =====================================================================================================================
 
 // Records the current values on the monotonic event timers
-int stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id);
+enum StopwatchStatus stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id);
 
 // Records the current values on the monotonic event timers. Will also perform a delta between the values recorded from
 // `stopwatch_record_start_measurements` and the current values to give a measurement on the profile on the procedure executing
 // between the calls of `stopwatch_record_start_measurements` and `stopwatch_record_end_measurements`
-int stopwatch_record_end_measurements(size_t routine_id);
+enum StopwatchStatus stopwatch_record_end_measurements(size_t routine_id);
 
-int stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasurementResult *result);
+enum StopwatchStatus stopwatch_get_measurement_results(size_t routine_id, struct StopwatchMeasurementResult *result);
 
 // Prints out the results
 void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *result);

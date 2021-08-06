@@ -8,7 +8,10 @@ module mod_stopwatch
 
     ! Constants
     integer(c_int), parameter :: STOPWATCH_OK = 0
-    integer(c_int), parameter :: STOPWATCH_ERR = -1
+    integer(c_int), parameter :: STOPWATCH_TOO_MANY_EVENTS = 1
+    integer(c_int), parameter :: STOPWATCH_INVALID_EVENT = 2
+    integer(c_int), parameter :: STOPWATCH_INVALID_EVENT_COMB = 3
+    integer(c_int), parameter :: STOPWATCH_ERR = 4
 
     integer(c_int), parameter :: STOPWATCH_MAX_EVENTS = 10
     integer(c_int), parameter :: NULL_TERM_MAX_ROUTINE_NAME_LEN = 16
