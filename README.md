@@ -8,9 +8,9 @@ installed with a package manager with the name `libpapi-dev`
 
 ## How to build
 Since the PAPI installation does to provide any CMake targets, Stopwatch attempts to find PAPI and create a target for
-it to use in CMake builds. It will look into default locations such as `/usr/lib`. If installing PAPI with a package 
-manager, PAPI should be found with no issues. Support for non-orthodox installation directories that usually come from
-building from source will come later...
+it to use in CMake builds. It will look into default locations such as `/usr/lib`. It will also attempt to use the shell
+environment variable `PAPI_DIR` to find the installation location of PAPI. If installing PAPI with a package 
+manager, PAPI should be found with no issues.
 
 ### Building Stopwatch
 ```shell
@@ -75,6 +75,17 @@ At the moment, the Stopwatch interface should be used like so:
    `stopwatch_record_end_measurements` the argument is the ID of the routine to complete the measurement for.
 3. call `stopwatch_destroy` to clean up the resources used
 
+### Error Codes:
+Some functions will return `enum StopwatchStatus` indicating the status of the function execution. List of possible
+status codes and their respective meanings
+- `STOPWATCH_OK` : Function executed successfully.
+- `STOPWATCH_TOO_MANY_EVENTS` : Function executed unsuccessfully. Too many events were selected to be added.
+- `STOPWATCH_INVALID_EVENT`: Function executed unsuccessfully. Event given is not a valid event.
+- `STOPWATCH_INVALID_EVENT_COMB` : Function executed unsuccessfully. The specific combination of events could not be
+  added. Either event(s) are not supported by the hardware, or the hardware cannot simultaneously measure all the
+  selected events.
+- `STOPWATCH_ERR` : Function executed unsuccessfully. Error unrelated to selected events.
+
 ##### Example:
 Example of measuring the performance of a loop of matrix multiplication where the number of cycles stalled waiting for
 resources, and the number of L1 cache misses are the selected events:
@@ -114,12 +125,12 @@ export STOPWATCH_EVENTS=PAPI_RES_STL,PAPI_L1_TCM
 
 The result should look similar to this:
 ```shell
-|-----------------------------------------------------------------------------------------------------------------|
-| ID | NAME             | TIMES CALLED | TOTAL REAL CYCLES | TOTAL REAL MICROSECONDS | PAPI_RES_STL | PAPI_L1_TCM |
-|-----------------------------------------------------------------------------------------------------------------|
-| 1  | total-loop       | 1            | 9837387310        | 4455471                 | 5911716339   | 951256697   |
-| 2  |     single-cycle | 10           | 9835929672        | 4454818                 | 5910669863   | 951113873   |
-|-----------------------------------------------------------------------------------------------------------------|
+|---------------------------------------------------------------------------------------------|
+| ID | NAME             | TIMES CALLED | TOTAL REAL MICROSECONDS | PAPI_RES_STL | PAPI_L1_TCM |
+|---------------------------------------------------------------------------------------------|
+| 1  | total-loop       | 1            | 4455471                 | 5911716339   | 951256697   |
+| 2  |     single-cycle | 10           | 4454818                 | 5910669863   | 951113873   |
+|---------------------------------------------------------------------------------------------|
 ```
 
 More examples can be found in the `examples` folder.
