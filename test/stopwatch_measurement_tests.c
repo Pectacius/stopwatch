@@ -37,7 +37,6 @@ void test_stopwatch_perf_mat_mul() {
   // to various factors such as hardware specs and randomness from the OS. Hence these assertions at the moment will
   // only check that the values are not absurd i.e the total time is not 0 etc, until a method is devised that can
   // accurately check these values while also being hardware independent.
-  assert(result.total_real_cyc > 0);
   assert(result.total_real_usec > 0);
   assert(result.total_event_values[0] > 0); // Total cycles
   assert(result.total_event_values[1] > 0); // Total instructions
@@ -107,13 +106,11 @@ void test_stopwatch_perf_mat_mul_loop() {
   assert(single_cycle.caller_routine_id == 1);
   assert(strcmp(single_cycle.routine_name, "single-cycle") == 0);
 
-  assert(total_loop.total_real_cyc > 0);
   assert(total_loop.total_real_usec > 0);
   assert(total_loop.total_event_values[0] > 0);
   assert(total_loop.total_event_values[1] > 0);
   assert(total_loop.total_times_called == 1);
 
-  assert(single_cycle.total_real_cyc > 0);
   assert(single_cycle.total_real_usec > 0);
   assert(single_cycle.total_event_values[0] > 0);
   assert(single_cycle.total_event_values[1] > 0);
@@ -123,7 +120,6 @@ void test_stopwatch_perf_mat_mul_loop() {
   // At the moment a 5% error will be considered acceptable
   assert(relative_error(total_loop.total_event_values[1], single_cycle.total_event_values[1]) < 0.01);
   assert(relative_error(total_loop.total_event_values[0], single_cycle.total_event_values[0]) < 0.01);
-  assert(relative_error(total_loop.total_real_cyc, single_cycle.total_real_cyc) < 0.01);
   assert(relative_error(total_loop.total_real_usec, single_cycle.total_real_usec) < 0.01);
 
   stopwatch_destroy();

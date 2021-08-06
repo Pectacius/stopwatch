@@ -18,7 +18,6 @@ enum StopwatchStatus {
 // Structure holding results for a specific entry
 // =====================================================================================================================
 struct StopwatchMeasurementResult {
-  long long total_real_cyc;
   long long total_real_usec;
   long long total_event_values[STOPWATCH_MAX_EVENTS];
   long long total_times_called;

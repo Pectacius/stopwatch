@@ -10,7 +10,6 @@
 #include <papi.h>
 
 #define INDENT_SPACING 4
-#define STOPWATCH_NUM_TIMERS 2            // Number of different timers. Corresponds to real cycles and real microseconds timers
 #define STOPWATCH_MAX_FUNCTION_CALLS 500  // Maximum number of measurement entries
 
 // Structure used to hold readings for the measurement clock.
@@ -25,10 +24,10 @@ struct MeasurementReadings {
   long long total_events_measurements[STOPWATCH_MAX_EVENTS];
   // Start measurements of each event. Each index corresponds to one event
   long long start_events_measurements[STOPWATCH_MAX_EVENTS];
-  // Accumulated values of each timer. First index real cycles, second index real microseconds
-  long long total_timers_measurements[STOPWATCH_NUM_TIMERS];
-  // Start values of each timer. First index real cycles, second index real microseconds
-  long long start_timers_measurements[STOPWATCH_NUM_TIMERS];
+  // Accumulated values of total real microseconds elapsed
+  long long total_real_us;
+  // Start values of real microseconds
+  long long start_real_us;
 };
 
 // Flag to signal initialization
@@ -83,7 +82,7 @@ enum StopwatchStatus stopwatch_init() {
     for (unsigned int idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
       readings[idx].total_times_called = 0;
       memset(readings[idx].total_events_measurements, 0, sizeof(readings[idx].total_events_measurements));
-      memset(readings[idx].total_timers_measurements, 0, sizeof(readings[idx].total_events_measurements));
+      readings[idx].total_real_us = 0;
       memset(readings[idx].routine_name, 0, sizeof(readings[idx].routine_name));
     }
 
@@ -148,8 +147,8 @@ enum StopwatchStatus stopwatch_record_start_measurements(size_t routine_id, cons
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
   }
-  readings[routine_id].start_timers_measurements[0] = PAPI_get_real_cyc();
-  readings[routine_id].start_timers_measurements[1] = PAPI_get_real_usec();
+
+  readings[routine_id].start_real_us = PAPI_get_real_usec();
 
   // Only log these values the first time it is called as there is a possibility of nesting.
   if (readings[routine_id].total_times_called == 0) {
@@ -172,10 +171,8 @@ enum StopwatchStatus stopwatch_record_end_measurements(size_t routine_id) {
   readings[routine_id].total_times_called++;
 
   // Accumulate the timer results
-  readings[routine_id].total_timers_measurements[0] +=
-      (PAPI_get_real_cyc() - readings[routine_id].start_timers_measurements[0]);
-  readings[routine_id].total_timers_measurements[1] +=
-      (PAPI_get_real_usec() - readings[routine_id].start_timers_measurements[1]);
+  readings[routine_id].total_real_us +=
+      (PAPI_get_real_usec() - readings[routine_id].start_real_us);
 
   // Accumulate the event(s) results
   for (unsigned int idx = 0; idx < num_registered_events; idx++) {
@@ -189,7 +186,6 @@ enum StopwatchStatus stopwatch_record_end_measurements(size_t routine_id) {
 void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *result) {
   printf("Procedure name: %s\n", result->routine_name);
   printf("Total times run: %lld\n", result->total_times_called);
-  printf("Total real cycles elapsed: %lld\n", result->total_real_cyc);
   printf("Total real microseconds elapsed: %lld\n", result->total_real_usec);
   for (unsigned int idx = 0; idx < result->num_of_events; idx++) {
     char event_code_string[PAPI_MAX_STR_LEN];
@@ -203,8 +199,7 @@ enum StopwatchStatus stopwatch_get_measurement_results(size_t routine_id, struct
     return STOPWATCH_ERR;
   }
 
-  result->total_real_cyc = readings[routine_id].total_timers_measurements[0];
-  result->total_real_usec = readings[routine_id].total_timers_measurements[1];
+  result->total_real_usec = readings[routine_id].total_real_us;
   result->num_of_events = num_registered_events;
   for (unsigned int idx = 0; idx < num_registered_events; idx++) {
     result->total_event_values[idx] = readings[routine_id].total_events_measurements[idx];
@@ -226,9 +221,9 @@ enum StopwatchStatus stopwatch_get_measurement_results(size_t routine_id, struct
 
 void stopwatch_print_result_table() {
   // Generate table
-  // Additional 3 for id, name, times called
+  const size_t num_static_cols = 4; // Additional 4 for id, name, times called and total usec
   const size_t num_functions = find_num_entries();
-  const size_t columns = num_registered_events + STOPWATCH_NUM_TIMERS + 3;
+  const size_t columns = num_registered_events + num_static_cols;
   const size_t rows = num_functions + 1; // Extra row for header
 
   struct StringTable *table = create_table(columns, rows, true, INDENT_SPACING);
@@ -347,8 +342,7 @@ static void set_header(const struct StringTable *table) {
   add_entry_str(table, "ID", (struct StringTableCellPos) {0, 0});
   add_entry_str(table, "NAME", (struct StringTableCellPos) {0, 1});
   add_entry_str(table, "TIMES CALLED", (struct StringTableCellPos) {0, 2});
-  add_entry_str(table, "TOTAL REAL CYCLES", (struct StringTableCellPos) {0, 3});
-  add_entry_str(table, "TOTAL REAL MICROSECONDS", (struct StringTableCellPos) {0, 4});
+  add_entry_str(table, "TOTAL REAL MICROSECONDS", (struct StringTableCellPos) {0, 3});
 
   // Header entries for each measurement event
   for (unsigned int entry_idx = 0; entry_idx < num_registered_events; entry_idx++) {
@@ -373,8 +367,7 @@ static void set_body_row(const struct StringTable *table,
   set_indent_lvl(table, stack_depth, (struct StringTableCellPos) {row_num, 1});
 
   add_entry_lld(table, reading.total_times_called, (struct StringTableCellPos) {row_num, 2});
-  add_entry_lld(table, reading.total_timers_measurements[0], (struct StringTableCellPos) {row_num, 3});
-  add_entry_lld(table, reading.total_timers_measurements[1], (struct StringTableCellPos) {row_num, 4});
+  add_entry_lld(table, reading.total_real_us, (struct StringTableCellPos) {row_num, 3});
 
   // Event specific table row measurement values
   for (size_t entry_idx = 0; entry_idx < num_registered_events; entry_idx++) {
