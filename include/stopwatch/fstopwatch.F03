@@ -11,7 +11,8 @@ module mod_stopwatch
     integer(c_int), parameter :: STOPWATCH_TOO_MANY_EVENTS = 1
     integer(c_int), parameter :: STOPWATCH_INVALID_EVENT = 2
     integer(c_int), parameter :: STOPWATCH_INVALID_EVENT_COMB = 3
-    integer(c_int), parameter :: STOPWATCH_ERR = 4
+    integer(c_int), parameter :: STOPWATCH_INVALID_FILE = 4
+    integer(c_int), parameter :: STOPWATCH_ERR = 5
 
     integer(c_int), parameter :: STOPWATCH_MAX_EVENTS = 10
     integer(c_int), parameter :: NULL_TERM_MAX_ROUTINE_NAME_LEN = 16
@@ -69,6 +70,11 @@ module mod_stopwatch
         subroutine Fstopwatch_print_result_table() bind(c, name = 'stopwatch_print_result_table')
 
         end subroutine Fstopwatch_print_result_table
+
+        integer(c_int) function Fstopwatch_result_to_csv(file_name) bind(c, name = 'stopwatch_result_to_csv')
+            import :: c_char, c_int
+            character(c_char), intent(in) :: file_name
+        end function Fstopwatch_result_to_csv
     end interface
 
 end module mod_stopwatch

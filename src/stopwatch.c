@@ -56,7 +56,7 @@ static int event_set = PAPI_NULL;
 // =====================================================================================================================
 static enum StopwatchStatus set_events();
 
-static enum StopwatchStatus add_event(const char* event_to_add);
+static enum StopwatchStatus add_event(const char *event_to_add);
 
 static size_t find_num_entries();
 
@@ -142,7 +142,9 @@ void stopwatch_destroy() {
   initialized_stopwatch = false;
 }
 
-enum StopwatchStatus stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id) {
+enum StopwatchStatus stopwatch_record_start_measurements(size_t routine_id,
+                                                         const char *function_name,
+                                                         size_t caller_routine_id) {
   int PAPI_ret = PAPI_read(event_set, readings[routine_id].start_events_measurements);
   if (PAPI_ret != PAPI_OK) {
     return STOPWATCH_ERR;
@@ -231,7 +233,7 @@ void stopwatch_print_result_table() {
   set_header(table);
 
   if (num_functions > 0) {
-    struct FunctionNode* function_list = malloc(sizeof(struct FunctionNode) * num_functions);
+    struct FunctionNode *function_list = malloc(sizeof(struct FunctionNode) * num_functions);
     size_t entry_num = 0;
     for (size_t idx = 0; idx < STOPWATCH_MAX_FUNCTION_CALLS; idx++) {
       if (readings[idx].total_times_called == 0) {
@@ -242,18 +244,18 @@ void stopwatch_print_result_table() {
       entry_num++;
     }
 
-    struct FunctionCallNode* call_tree = function_call_node_grow_tree_from_array(function_list, num_functions);
+    struct FunctionCallNode *call_tree = function_call_node_grow_tree_from_array(function_list, num_functions);
     free(function_list);
     function_list = NULL;
-    struct FunctionCallTreeDFIter* iter = create_function_call_tree_DF_iter(call_tree);
+    struct FunctionCallTreeDFIter *iter = create_function_call_tree_DF_iter(call_tree);
     // Since the first function call is always a call to main and we do not want to print that, we skip that entry
     function_call_tree_DF_iter_next(iter);
 
     size_t row_cursor = 1;
-    while(function_call_tree_DF_iter_has_next(iter)) {
-      const struct FunctionCallNode* next = function_call_tree_DF_iter_next(iter);
+    while (function_call_tree_DF_iter_has_next(iter)) {
+      const struct FunctionCallNode *next = function_call_tree_DF_iter_next(iter);
       // Subtract from stack depth as we want the stack depth relative to the call to main where main has a depth of 0
-      set_body_row(table, row_cursor, next->function_id, next->stack_depth-1, readings[next->function_id]);
+      set_body_row(table, row_cursor, next->function_id, next->stack_depth - 1, readings[next->function_id]);
       row_cursor++;
     }
 
@@ -272,20 +274,59 @@ void stopwatch_print_result_table() {
   table = NULL;
 }
 
+enum StopwatchStatus stopwatch_result_to_csv(const char *file_name) {
+  printf("Reached\n");
+  FILE *output_file = fopen(file_name, "w+");
+  if (output_file == NULL) {
+    return STOPWATCH_INVALID_FILE;
+  }
+
+  // Write default header values
+  fprintf(output_file, "%s,%s,%s,%s,%s", "ID", "NAME", "CALLER_ID", "TIMES_CALLED", "TOTAL_REAL_MICROSECONDS");
+  // Write each selected event
+  for (size_t idx = 0; idx < num_registered_events; idx++) {
+    char event_code_str[PAPI_MAX_STR_LEN];
+    PAPI_event_code_to_name(events[idx], event_code_str);
+    fprintf(output_file, ",%s", event_code_str);
+  }
+  // New line
+  fprintf(output_file, "\n");
+
+  // Write contents
+  for (size_t entry = 0; entry < STOPWATCH_MAX_FUNCTION_CALLS; entry++) {
+    if (readings[entry].total_times_called > 0) {
+      fprintf(output_file,
+              "%zu,%s,%zu,%lld,%lld",
+              entry,
+              readings[entry].routine_name,
+              readings[entry].caller_routine_id,
+              readings[entry].total_times_called,
+              readings[entry].total_real_us);
+      for(size_t idx = 0; idx < num_registered_events; idx++) {
+        fprintf(output_file, ",%lld", readings[entry].total_events_measurements[idx]);
+      }
+      fprintf(output_file, "\n");
+    }
+  }
+  fclose(output_file);
+  return STOPWATCH_OK;
+}
+
 // =====================================================================================================================
 // Private helper functions implementation
 // =====================================================================================================================
 static enum StopwatchStatus set_events() {
   int ret_val;
-  const char* event_env_val = getenv("STOPWATCH_EVENTS");
+  const char *event_env_val = getenv("STOPWATCH_EVENTS");
   // For if the environment variable exists
   if (event_env_val) {
     // A copy is made as strtok_r mutates the arguments
-    char* env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
-    char* delimiter = ",";
-    char* save_ptr;
+    char *env_var_copy_elem = strdup(event_env_val); // Copy of the env var for use to parse each element
+    char *delimiter = ",";
+    char *save_ptr;
 
-    for(char* token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL; token = strtok_r(NULL, delimiter, &save_ptr)) {
+    for (char *token = strtok_r(env_var_copy_elem, delimiter, &save_ptr); token != NULL;
+         token = strtok_r(NULL, delimiter, &save_ptr)) {
       ret_val = add_event(token);
       if (ret_val != STOPWATCH_OK) {
         break;
@@ -294,8 +335,8 @@ static enum StopwatchStatus set_events() {
     free(env_var_copy_elem);
     env_var_copy_elem = NULL;
   } else { // For if the environment variable does not exist
-    const char* default_events[] = {"PAPI_TOT_CYC", "PAPI_TOT_INS"};
-    for(size_t idx = 0; idx < sizeof (default_events) / sizeof (char*); idx++) {
+    const char *default_events[] = {"PAPI_TOT_CYC", "PAPI_TOT_INS"};
+    for (size_t idx = 0; idx < sizeof(default_events) / sizeof(char *); idx++) {
       ret_val = add_event(default_events[idx]);
       if (ret_val != STOPWATCH_OK) {
         break;
@@ -305,7 +346,7 @@ static enum StopwatchStatus set_events() {
   return ret_val;
 }
 
-static enum StopwatchStatus add_event(const char* event_to_add) {
+static enum StopwatchStatus add_event(const char *event_to_add) {
   // Prevent adding more events than maximum
   if (num_registered_events >= STOPWATCH_MAX_EVENTS) {
     return STOPWATCH_TOO_MANY_EVENTS;

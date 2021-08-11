@@ -8,6 +8,7 @@ enum StopwatchStatus {
   STOPWATCH_TOO_MANY_EVENTS,
   STOPWATCH_INVALID_EVENT,
   STOPWATCH_INVALID_EVENT_COMB,
+  STOPWATCH_INVALID_FILE,
   STOPWATCH_ERR,
 };
 
@@ -58,5 +59,8 @@ void stopwatch_print_measurement_results(struct StopwatchMeasurementResult *resu
 
 // Generates a table as a pretty printed string
 void stopwatch_print_result_table();
+
+// Saves results to specified file
+enum StopwatchStatus stopwatch_result_to_csv(const char* file_name);
 
 #endif //STOPWATCH_STOPWATCH_H
