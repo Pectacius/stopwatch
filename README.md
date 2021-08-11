@@ -84,6 +84,7 @@ status codes and their respective meanings
 - `STOPWATCH_INVALID_EVENT_COMB` : Function executed unsuccessfully. The specific combination of events could not be
   added. Either event(s) are not supported by the hardware, or the hardware cannot simultaneously measure all the
   selected events.
+- `STOPWATCH_INVALID_FILE` : Function executed unsuccessfully. Path given is not valid.
 - `STOPWATCH_ERR` : Function executed unsuccessfully. Error unrelated to selected events.
 
 ##### Example:
