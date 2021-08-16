@@ -275,7 +275,6 @@ void stopwatch_print_result_table() {
 }
 
 enum StopwatchStatus stopwatch_result_to_csv(const char *file_name) {
-  printf("Reached\n");
   FILE *output_file = fopen(file_name, "w+");
   if (output_file == NULL) {
     return STOPWATCH_INVALID_FILE;
