@@ -84,7 +84,7 @@ int add_entry_str(const struct StringTable *table, const char *value, struct Str
     table->contents[effective_idx] = NULL;
   }
   table->contents[effective_idx] = malloc(sizeof(char) * (strlen(value) + 1)); // Extra value for the null terminator
-  strcpy(table->contents[effective_idx], value);
+  strcpy(table->contents[effective_idx], value); // Should always be safe as a buffer that is large enough is allocated
   return STR_TABLE_OK;
 }
 
@@ -212,8 +212,10 @@ static void set_table_border(char **cursor, size_t row_width) {
 
 static void set_table_entry(char **cursor, const size_t *col_widths, const struct StringTable *table, unsigned int row_num) {
   for (unsigned int col = 0; col < table->width; col++) {
-    // Fill in left border
-    strncpy(*cursor, "| ", 2);
+    // Fill in left border. The buffer starting at the address of cursor is guaranteed to fit the two characters. This
+    // is because make_table_str function has already precomputed the size of the buffer that is required to fit all
+    // elements.
+    memcpy(*cursor, "| ", 2);
     (*cursor)+=2;
 
     const size_t effective_idx = row_num * table->width + col;
@@ -231,8 +233,9 @@ static void set_table_entry(char **cursor, const size_t *col_widths, const struc
     // Fill in remaining available spaces with whitespaces
     set_whitespace(cursor, right_spaces);
   }
-  // Fill in right border
-  strncpy(*cursor, "|\n", 2);
+  // Fill in right border. The buffer starting at cursor is guaranteed to be able to fit the two characters. Again, this
+  // is because make_table_str function has already precomputed the required buffer size to hold all elements.
+  memcpy(*cursor, "|\n", 2);
   (*cursor)+=2;
 }
 

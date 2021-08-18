@@ -211,8 +211,8 @@ enum StopwatchStatus stopwatch_get_measurement_results(size_t routine_id, struct
   result->total_times_called = readings[routine_id].total_times_called;
   result->caller_routine_id = readings[routine_id].caller_routine_id;
 
-  // String already null terminated
-  strncpy(result->routine_name, readings[routine_id].routine_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
+  // String already null terminated. Note this also copies the NULL terminator '\0'
+  memcpy(result->routine_name, readings[routine_id].routine_name, NULL_TERM_MAX_ROUTINE_NAME_LEN);
 
   return STOPWATCH_OK;
 }
