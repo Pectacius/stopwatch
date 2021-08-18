@@ -19,25 +19,19 @@ if (UNIX)
     # suggest that the environment variable <PAPI_DIR> should be set to where PAPI is installed. This variable is used
     # to find where PAPI is installed. Default locations are also searched if the environment variable is not set.
 
-    include(FindPkgConfig)
-    pkg_search_module(PAPIPKG papi)
+    # First use pkg-config to find PAPI. If that fails use the ENV hint to find PAPI. Set it to quiet as pkg-config is
+    # not required, hence an extra check to see if it is actually found.
+    find_package(PkgConfig QUIET)
+    if (PKG_CONFIG_FOUND)
+        message(STATUS "Looking for PAPI via pkg-config")
+        pkg_search_module(PAPI papi)
+    endif()
 
-    if (PAPIPKG_FOUND)
-        message("Found PAPI via pkg-config")
-        find_path(PAPI_INCLUDE_DIR
-                NAMES papi.h
-                HINTS ${PAPIPKG_INCLUDE_DIRS}
-                PATH_SUFFIXES include
-                REQUIRED)
-
-        find_library(PAPI_LIBRARY
-                NAMES libpapi.a papi
-                HINTS ${PAPIPKG_LIBRARY_DIRS}
-                PATH_SUFFIXES lib
-                REQUIRED)
-
+    # If PAPI_FOUND is defined here, then it must have been found with pkg-config
+    if (PAPI_FOUND)
+        message(STATUS "Found PAPI via pkg-config")
     else ()
-        message("Looking for PAPI via find_path")
+        message(STATUS "Looking for PAPI via find_path")
         find_path(PAPI_INCLUDE_DIR
                 NAMES papi.h
                 HINTS ENV PAPI_DIR
@@ -49,17 +43,20 @@ if (UNIX)
                 HINTS ENV PAPI_DIR
                 PATH_SUFFIXES lib
                 REQUIRED)
+
+        message(STATUS "Found PAPI via find_path")
+
+        include(FindPackageHandleStandardArgs)
+        # handle the QUIETLY and REQUIRED arguments and set PAPI_FOUND to TRUE
+        # if all listed variables are TRUE
+        find_package_handle_standard_args(
+                PAPI
+                DEFAULT_MSG
+                PAPI_LIBRARY
+                PAPI_INCLUDE_DIR
+        )
 
     endif()
-    include(FindPackageHandleStandardArgs)
-    # handle the QUIETLY and REQUIRED arguments and set PAPI_FOUND to TRUE
-    # if all listed variables are TRUE
-    find_package_handle_standard_args(
-            PAPI
-            DEFAULT_MSG
-            PAPI_LIBRARY
-            PAPI_INCLUDE_DIR
-    ) 
 
     mark_as_advanced(PAPI_INCLUDE_DIR PAPI_LIBRARY)
 
