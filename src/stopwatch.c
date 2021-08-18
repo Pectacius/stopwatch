@@ -90,29 +90,29 @@ enum StopwatchStatus stopwatch_init() {
     num_registered_events = 0;
 
     // Initialize PAPI
-    int ret_val = PAPI_library_init(PAPI_VER_CURRENT);
-    if (ret_val != PAPI_VER_CURRENT) {
+    int init_ret_val = PAPI_library_init(PAPI_VER_CURRENT);
+    if (init_ret_val != PAPI_VER_CURRENT) {
       stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
-    ret_val = PAPI_create_eventset(&event_set);
-    if (ret_val != PAPI_OK) {
+    int create_ret_val = PAPI_create_eventset(&event_set);
+    if (create_ret_val != PAPI_OK) {
       stopwatch_destroy();
       return STOPWATCH_ERR;
     }
 
     // Attempt to add each event selected in the environment variable to the event set. If not all can be added
     // STOPWATCH_ERR will be returned
-    ret_val = set_events();
+    enum StopwatchStatus ret_val = set_events();
     if (ret_val != STOPWATCH_OK) {
       stopwatch_destroy();
       return ret_val;
     }
 
     // Start the monotonic clock
-    ret_val = PAPI_start(event_set);
-    if (ret_val != PAPI_OK) {
+    int start_ret_val = PAPI_start(event_set);
+    if (start_ret_val != PAPI_OK) {
       stopwatch_destroy();
       return STOPWATCH_ERR;
     }
@@ -315,7 +315,7 @@ enum StopwatchStatus stopwatch_result_to_csv(const char *file_name) {
 // Private helper functions implementation
 // =====================================================================================================================
 static enum StopwatchStatus set_events() {
-  int ret_val;
+  enum StopwatchStatus ret_val;
   const char *event_env_val = getenv("STOPWATCH_EVENTS");
   // For if the environment variable exists
   if (event_env_val) {

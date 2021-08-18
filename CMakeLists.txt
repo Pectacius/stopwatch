@@ -57,7 +57,7 @@ target_link_libraries(stopwatch
         -no-pie
         )
 
-target_compile_options(stopwatch PRIVATE -Wall -Wpedantic -Wextra)
+target_compile_options(stopwatch PRIVATE -Wall -Wextra)
 
 #=======================================================================================================================
 # Installation
