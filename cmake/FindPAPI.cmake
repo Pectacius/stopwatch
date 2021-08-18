@@ -19,18 +19,38 @@ if (UNIX)
     # suggest that the environment variable <PAPI_DIR> should be set to where PAPI is installed. This variable is used
     # to find where PAPI is installed. Default locations are also searched if the environment variable is not set.
 
-    find_path(PAPI_INCLUDE_DIR
-            NAMES papi.h
-            HINTS ENV PAPI_DIR
-            PATH_SUFFIXES include
-            REQUIRED)
+    include(FindPkgConfig)
+    pkg_search_module(PAPIPKG papi)
 
-    find_library(PAPI_LIBRARY
-            NAMES libpapi.a papi
-            HINTS ENV PAPI_DIR
-            PATH_SUFFIXES lib
-            REQUIRED)
+    if (PAPIPKG_FOUND)
+        message("Found PAPI via pkg-config")
+        find_path(PAPI_INCLUDE_DIR
+                NAMES papi.h
+                HINTS ${PAPIPKG_INCLUDE_DIRS}
+                PATH_SUFFIXES include
+                REQUIRED)
 
+        find_library(PAPI_LIBRARY
+                NAMES libpapi.a papi
+                HINTS ${PAPIPKG_LIBRARY_DIRS}
+                PATH_SUFFIXES lib
+                REQUIRED)
+
+    else ()
+        message("Looking for PAPI via find_path")
+        find_path(PAPI_INCLUDE_DIR
+                NAMES papi.h
+                HINTS ENV PAPI_DIR
+                PATH_SUFFIXES include
+                REQUIRED)
+
+        find_library(PAPI_LIBRARY
+                NAMES libpapi.a papi
+                HINTS ENV PAPI_DIR
+                PATH_SUFFIXES lib
+                REQUIRED)
+
+    endif()
     include(FindPackageHandleStandardArgs)
     # handle the QUIETLY and REQUIRED arguments and set PAPI_FOUND to TRUE
     # if all listed variables are TRUE
@@ -39,7 +59,7 @@ if (UNIX)
             DEFAULT_MSG
             PAPI_LIBRARY
             PAPI_INCLUDE_DIR
-    )
+    ) 
 
     mark_as_advanced(PAPI_INCLUDE_DIR PAPI_LIBRARY)
 
