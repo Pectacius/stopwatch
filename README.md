@@ -185,7 +185,7 @@ int main() {
 ```
 
 Before running the binary, the environment variable `STOPWATCH_EVENTS` must be set. In this case it should be set to
-`PAPI_RES_STL:PAPI_L1_TCM`.
+`PAPI_RES_STL,PAPI_L1_TCM`.
 ```shell
 export STOPWATCH_EVENTS=PAPI_RES_STL,PAPI_L1_TCM
 ```
