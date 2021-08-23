@@ -6,28 +6,62 @@ API wrapper for [PAPI](https://icl.utk.edu/papi/)
 - PAPI (Instructions can be found [here](https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md)) or be
 installed with a package manager with the name `libpapi-dev`
 
-## How to build
+## Build Instructions
+
+### Core Dependency - PAPI
 Since the PAPI installation does to provide any CMake targets, Stopwatch attempts to find PAPI and create a target for
-it to use in CMake builds. It will look into default locations such as `/usr/lib`. It will also attempt to use the shell
-environment variable `PAPI_DIR` to find the installation location of PAPI. If installing PAPI with a package 
-manager, PAPI should be found with no issues.
+it to use in CMake builds. 
+
+The search order is:
+1.  Searches for `PAPI` using `pkg-config` if `pkg-config` exists on the system. This means on Cray systems, executing
+    `module load papi` will allow `PAPI` to be found.
+2.  Searches for `PAPI` using `find_path`. This means it will look into default locations for `papi.h` and `libpapi.a`.
+    An extra hint using the shell variable `PAPI_DIR` is provided to assist with finding `PAPI` if `PAPI` is not
+    installed in a default location i.e., when building `PAPI` from source. `PAPI_DIR` is identical to the `PAPI_DIR`
+    that is specified in the 
+    [build from source instructions](https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md).
+    
+    Diagram of a typical `PAPI` installation when building from source
+    ```bash
+    └── install_folder          # Installation directory of PAPI, AKA what <PAPI_DIR> should be set to
+        ├── include             # Folder containing the public header
+        │   └──  papi.h    
+        ├── lib                 # Folder containing the built static/shared libs
+        │   ├── libpapi.a
+        │   ├── libpapi.so
+        │   └── ....
+        └── ...
+    ```
+    
+    More info on how `find_path` searches can be found [here](https://cmake.org/cmake/help/latest/command/find_path.html)
 
 ### Building Stopwatch
+Running
 ```shell
 cd stopwatch
 cmake -Bbuild
 cmake --build build
 ```
 
-To also build the examples which currently includes some matrix multiplication, specify `cmake -Bbuild -DBUILD_EXAMPLES=ON`
-instead of `cmake -Bbuild`
+Will build `Stopwatch` using the folder `build` as the build folder with the default build configurations which are:
+- Build type is debug
+- Default install prefix
+- Build tests
+- Do not build `C` or `Fortran` example programs
+
+The build configurations can be changed by passing in extra flags when first running `cmake` to generate the build system
+- Changing build type: `-DCMAKE_BUILD_TYPE=<type>` i.e, `Release`
+- Changing install prefix: `-DCMAKE_INSTALL_PREFIX=<path>`, where `<path>` is where `Stopwatch` should be installed
+- Do not build tests: `-DBUILD_TESTING=OFF`
+- Build `C` examples: `-DBUILD_C_EXAMPLES=ON`
+- Build `Fortran` examples: `-DBUILD_FORTRAN_EXAMPLES=ON`
 
 ### Installing Stopwatch
 Running
 ```shell
 sudo cmake --build build -- install
 ```
-will install in the default location of `usr/local`
+will install in the path specified by `CMAKE_INSTALL_PREFIX`
 
 #### Custom Install Location:
 The default location can be changed by setting the `CMAKE_INSTALL_PREFIX` cached variable to the path that `Stopwatch`
@@ -41,10 +75,6 @@ If `Stopwatch` is installed in `~/stopwatch_install`and `project_foo` depends on
 ```sh
 cmake -Bbuild -DStopwatch_DIR=~/stopwatch_install/lib/cmake/Stopwatch
 ```
-
-### Optional CMake Configurations
-- `-DBUILD_C_EXAMPLES=ON` will also build the C example programs. The default is OFF
-- `-DBUILD_FORTRAN_EXAMPLES=ON` will also build the Fortran example programs. The default is OFF
 
 ## Using Stopwatch
 In the CMakeLists.txt add:
@@ -75,7 +105,27 @@ At the moment, the Stopwatch interface should be used like so:
    `stopwatch_record_end_measurements` the argument is the ID of the routine to complete the measurement for.
 3. call `stopwatch_destroy` to clean up the resources used
 
-### Error Codes:
+### C Fortran Mappings
+For `Fortran` usage, append the letter `F` to the start of each routine name to get the appropriate routine.
+
+
+| C Function | Fortran Function / Subroutine |
+| ---------- | --------------------------- |
+| `stopwatch_init` | `Fstopwatch_init` |
+| `stopwatch_destroy` | `Fstopwatch_destroy` |
+| `stopwatch_record_start_measurements` | `Fstopwatch_record_start_measurements` |
+| `stopwatch_record_end_measurements` | `Fstopwatch_record_end_measurements` |
+| `stopwatch_print_measurement_results` | `Fstopwatch_print_measurement_results` |
+| `stopwatch_print_result_table` | `Fstopwatch_print_result_table` |
+| `stopwatch_result_to_csv` | `Fstopwatch_result_to_csv` |
+
+Note that for the `C` routines that take a `char*` their equivalent `Fortran` routines must pass in an array of
+characters where the last character is a `c_null_char` from the module `iso_c_binding` as `C` strings are null
+terminated
+
+The `C` `enum StopwatchStatus` values are defined as parameters in the `Fortran` equivalent.
+
+### Error Codes
 Some functions will return `enum StopwatchStatus` indicating the status of the function execution. List of possible
 status codes and their respective meanings
 - `STOPWATCH_OK` : Function executed successfully.
@@ -87,7 +137,23 @@ status codes and their respective meanings
 - `STOPWATCH_INVALID_FILE` : Function executed unsuccessfully. Path given is not valid.
 - `STOPWATCH_ERR` : Function executed unsuccessfully. Error unrelated to selected events.
 
-##### Example:
+
+### Configurations
+The environment variable `STOPWATCH_EVENTS` are used to configure which events are measured. Each event should be
+delimited via a comma.
+
+Example
+```shell
+export STOPWATCH_EVENTS=PAPI_SP_OPS,PAPI_TOT_INS
+```
+
+If the events specified in `STOPWATCH_EVENTS` are not valid `PAPI` events or if the hardware cannot support measuring
+the event combination, then `stopwatch_init` **WILL NOT** return the `enum StopwatchStatus` `STOPWATCH_OK` meaning
+execution beyond `stopwatch_init` is **undefined**. Make sure to always check the return status of `stopwatch_init`.
+
+If `STOPWATCH_EVENTS` is not set, the default events used are `PAPI_TOT_CYC` and `PAPI_TOT_INS`
+
+##### Example
 Example of measuring the performance of a loop of matrix multiplication where the number of cycles stalled waiting for
 resources, and the number of L1 cache misses are the selected events:
 ```c
