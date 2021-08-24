@@ -7,6 +7,11 @@
 // =====================================================================================================================
 static size_t find_max_function_id(const struct FunctionNode *arr, size_t len);
 
+// Depth first traverses the tree and updates the stack depth accordingly. Note that this cannot be done when creating
+// the tree. The root of the tree will always have a stack depth of 0 hence depth should always be 0 when tree is the
+// "root" of the entire tree.
+static void update_stack_depth(struct FunctionCallNode* tree, size_t depth);
+
 // =====================================================================================================================
 // Public functions implementations
 // =====================================================================================================================
@@ -59,6 +64,8 @@ struct FunctionCallNode *function_call_node_grow_tree_from_array(const struct Fu
     const size_t id = arr[idx].function_id;
     function_call_node_add_callee(node_list[caller_id], node_list[id]);
   }
+
+  update_stack_depth(root, 0);
 
   //Clean up hash table
   free(node_list);
@@ -140,4 +147,15 @@ static size_t find_max_function_id(const struct FunctionNode *arr, size_t len) {
     }
   }
   return max_id;
+}
+
+static void update_stack_depth(struct FunctionCallNode* tree, size_t depth) {
+  if (tree != NULL) {
+    tree->stack_depth = depth;
+    struct FunctionCallNode *children = tree->last_callee;
+    while (children) {
+      update_stack_depth(children, depth + 1);
+      children = children->prev_node;
+    }
+  }
 }
