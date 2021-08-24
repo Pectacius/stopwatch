@@ -2,8 +2,8 @@
 
 API wrapper for [PAPI](https://icl.utk.edu/papi/)
 
-### Dependencies
-- PAPI (Instructions can be found [here](https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md)) or be
+## Dependencies
+- PAPI (Building and installing instructions can be found [here](https://bitbucket.org/icl/papi/wiki/Downloading-and-Installing-PAPI.md)) or be
 installed with a package manager with the name `libpapi-dev`
 
 ## Build Instructions
@@ -48,10 +48,11 @@ Will build `Stopwatch` using the folder `build` as the build folder with the def
 - Default install prefix
 - Build tests
 - Do not build `C` or `Fortran` example programs
+The build folder can be changed to any directory except the source directory by changing `build` to the custom path i.e, `cmake -B<path_to_custom_location>`
 
 The build configurations can be changed by passing in extra flags when first running `cmake` to generate the build system
 - Changing build type: `-DCMAKE_BUILD_TYPE=<type>` i.e, `Release`
-- Changing install prefix: `-DCMAKE_INSTALL_PREFIX=<path>`, where `<path>` is where `Stopwatch` should be installed
+- Changing install prefix: `-DCMAKE_INSTALL_PREFIX=<path>`, where `<path>` is where `Stopwatch` should be installed. More info on a custom install location can be found [here](https://github.com/Pectacius/stopwatch#custom-install-location)
 - Do not build tests: `-DBUILD_TESTING=OFF`
 - Build `C` examples: `-DBUILD_C_EXAMPLES=ON`
 - Build `Fortran` examples: `-DBUILD_FORTRAN_EXAMPLES=ON`
@@ -59,9 +60,9 @@ The build configurations can be changed by passing in extra flags when first run
 ### Installing Stopwatch
 Running
 ```shell
-sudo cmake --build build -- install
+cmake --build build -- install
 ```
-will install in the path specified by `CMAKE_INSTALL_PREFIX`
+will install in the path specified by `CMAKE_INSTALL_PREFIX`, assuming that the build directory is `build`. If built in a custom directory, simply change to `cmake --build <path_to_custom_location> -- install`
 
 #### Custom Install Location:
 The default location can be changed by setting the `CMAKE_INSTALL_PREFIX` cached variable to the path that `Stopwatch`
@@ -75,35 +76,98 @@ If `Stopwatch` is installed in `~/stopwatch_install`and `project_foo` depends on
 ```sh
 cmake -Bbuild -DStopwatch_DIR=~/stopwatch_install/lib/cmake/Stopwatch
 ```
+Running
+```sh
+cd Stopwatch
+cmake -Bbuild -DCMAKE_INSTALL_PREFIX=~/stopwatch_install
+cmake --build build -- install
+```
+Will create a directory structure that is similar to this
+```shell
+└── home_folder                     # What the shell expands ~ to
+    ├── stopwatch_install           # Location that was specified to CMAKE_INSTALL_PREFIX when building Stopwatch
+    │   ├── include
+    │   │   └── stopwatch
+    │   │       ├── stopwatch.h
+    │   │       └── fstopwatch.F03
+    │   └── lib                     # Might also be called lib64
+    │       ├── cmake
+    │       │   └── Stopwatch       # Folder containing all the cmake configuration files for this project. WHAT WE ARE INTRESTED IN
+    │       │       └── ...
+    │       └── libstopwatch.a
+    ├── project_foo                 # Folder containing the project that wants to use the Stopwatch library. It is assumed that it is also located in ~
+    │   └── ....                    # Project file structure omitted for this example
+    └── ...                         # Other folders that might be in this directory .. omitted for this example
+```
+
+In order for CMake to generate the build system correctly for `project_foo` the location of Stopwatch's cmake configuration files must be provided. Hence,
+
+```sh
+cd project_foo
+cmake -Bbuild -DStopwatch_DIR=~/stopwatch_install/lib/cmake/Stopwatch
+```
 
 ## Using Stopwatch
 In the CMakeLists.txt add:
-- `find_package(Stopwatch REQUIRED)` to make the library available
-- `target_link_libraries(target Stopwatch::Stopwatch)` to link with the library
-- For C targets, add:
+- `find_package(Stopwatch REQUIRED)` to make the library available. As mentioned [before](https://github.com/Pectacius/stopwatch#installing-stopwatch) if `Stopwatch` is installed in a custom location, when running CMake for the first time, the cached variable`StopwatchDIR`must be set to `<stopwatch_install_prefix>/lib/cmake/Stopwatch` or `<stopwatch_install_prefix>/lib64/cmake/Stopwatch`.
+- `target_link_libraries(target Stopwatch::Stopwatch)` to link with the library.
+For C targets, add:
   ```c 
   #include <stopwatch/stopwatch.h>
   ```
   for the interface definitions
-- For Fortran targets, add:
+For Fortran targets, add:
    ```fortran
    #include <stopwatch/fstopwatch.F03>
    ```
   for the `mod_stopwatch` that contains the Fortran bindings
 
 At the moment, the Stopwatch interface should be used like so:
-1. call `stopwatch_init` to initialize the appropriate structures and start the monotonic event timers. The events to be
-   measured is specified via the `STOPWATCH_EVENTS` environment variable. Each event should be delimited with a comma `,`.
-   The events that can be added can be initially queried via the utility `papi_avail` that PAPI provides. If the
-   `STOPWATCH_EVENTS` variable is unset, the default events of `PAPI_TOT_CYC` and `PAPI_TOT_INS` are used.
-2. wrap the function(s) to measure with the calls to `stopwatch_record_start_measurements` and 
-   `stopwatch_record_end_measurements`. For `stopwatch_record_start_measurements` the first argument is the unique ID
-   for the routine that is to be measured. It is up to the user to ensure that this ID does not collide with another ID
-   of another routine that is measured. Note that ID `0` is reserved for the `main` function. The second argument is the
-   string representation of the routine name. The third argument is the ID of the caller of the current routine. Note
-   that for routines that are called by the main function, the caller ID would be `0`. For 
-   `stopwatch_record_end_measurements` the argument is the ID of the routine to complete the measurement for.
-3. call `stopwatch_destroy` to clean up the resources used
+```
+initialize_stopwatch
+
+start_measurement_of_region
+
+    do some work                # Some code that does some meaningful work i.e, code that is to be instrumented
+
+end_measurement_of_region
+
+clean_up_resources
+```
+
+- `initialize_stopwatch` corresponds to the `C` function
+```C
+enum StopwatchStatus stopwatch_init();
+```
+Initialize the appropriate structures and start the monotonic event timers. The events to be
+measured is specified via the `STOPWATCH_EVENTS` environment variable. Each event should be delimited with a comma `,`.
+The events that can be added can be initially queried via the utility `papi_avail` that PAPI provides. If the
+`STOPWATCH_EVENTS` variable is unset, the default events of `PAPI_TOT_CYC` and `PAPI_TOT_INS` are used. More infomation about configurations can be found [here](https://github.com/Pectacius/stopwatch#configurations)
+
+
+- `start_measurement_of_region` corresponds to the `C` function
+```C
+enum StopwatchStatus stopwatch_record_start_measurements(size_t routine_id, const char *function_name, size_t caller_routine_id);
+```
+The first argument is the unique ID
+for the routine that is to be measured. It is up to the user to ensure that this ID does not collide with another ID
+of another routine that is measured. Note that ID `0` is reserved for the `main` function. The second argument is the
+string representation of the routine name. The third argument is the ID of the caller of the current routine. Note
+that for routines that are called by the main function, the caller ID would be `0`.
+
+- `end_measurement_of_region` corresponds to the `C` function
+```C
+enum StopwatchStatus stopwatch_record_end_measurements(size_t routine_id);
+```
+The argument is the ID of the routine to complete the measurement for.
+
+- `clean_up_resources` corresponds to the `C` function
+```C
+void stopwatch_destroy();
+```
+This will clean up all resources used. A bit of a misnomer as `PAPI` itself seems to have a slight memory leak.
+
+**Note** that the pair `start measurement region` and `end measurement region` define a region of code to collect measurements from. Regions can be nested inside of regions. `enum StopwatchStatus` reflects the return code of function execution. A detailed explaination can be found [here](https://github.com/Pectacius/stopwatch#error-codes)
 
 ### C Fortran Mappings
 For `Fortran` usage, append the letter `F` to the start of each routine name to get the appropriate routine.
@@ -183,6 +247,7 @@ int main() {
   stopwatch_destroy(); // Clean up resources used
 }
 ```
+Note that the function `initialize_mat` creates a NxN matrix and the function `mat_mul` multiplies two matrices `A` `B` that are both NxN matricies into a third matrix `C` that is also NxN. Both function's definitions are ommitted for this example.
 
 Before running the binary, the environment variable `STOPWATCH_EVENTS` must be set. In this case it should be set to
 `PAPI_RES_STL,PAPI_L1_TCM`.
