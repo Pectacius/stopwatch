@@ -24,12 +24,31 @@ if (UNIX)
     find_package(PkgConfig QUIET)
     if (PKG_CONFIG_FOUND)
         message(STATUS "Looking for PAPI via pkg-config")
-        pkg_search_module(PAPI papi)
+        pkg_search_module(PAPI IMPORTED_TARGET papi)
     endif()
 
     # If PAPI_FOUND is defined here, then it must have been found with pkg-config
     if (PAPI_FOUND)
         message(STATUS "Found PAPI via pkg-config")
+        find_package_handle_standard_args(PAPI REQUIRED_VARS pkgcfg_lib_PAPI_papi PAPI_CFLAGS PAPI_LDFLAGS VERSION_VAR PAPI_VERSION)
+
+        # Hack: pkg-config returns PAPI_LDFLAGS as a semicolon-separated list.
+        # This is incompatible with the space-separated list needed by set_target_properties,
+        # so use string replacement
+        string(REPLACE ";" " " PAPI_LDFLAGS_SPACE ${PAPI_LDFLAGS})
+
+        include(FindPackageHandleStandardArgs)
+
+        if (NOT TARGET PAPI::PAPI)
+            add_library(PAPI::PAPI STATIC IMPORTED)
+            set_target_properties(
+                    PAPI::PAPI
+                    PROPERTIES
+                    IMPORTED_LOCATION ${pkgcfg_lib_PAPI_papi} # Use the internal library found by pkgconfig
+                    COMPILE_OPTIONS ${PAPI_CFLAGS}
+                    LINK_FLAGS ${PAPI_LDFLAGS_SPACE})
+
+        endif ()
     else ()
         message(STATUS "Looking for PAPI via find_path")
         find_path(PAPI_INCLUDE_DIR
@@ -56,19 +75,19 @@ if (UNIX)
                 PAPI_INCLUDE_DIR
         )
 
+       mark_as_advanced(PAPI_INCLUDE_DIR PAPI_LIBRARY)
+
+       # Make PAPI an imported target and also include its public header papi.h
+       if (PAPI_FOUND AND NOT TARGET PAPI::PAPI)
+           add_library(PAPI::PAPI STATIC IMPORTED)
+           set_target_properties(
+                   PAPI::PAPI
+                   PROPERTIES
+                   IMPORTED_LOCATION ${PAPI_LIBRARY}
+                   INTERFACE_INCLUDE_DIRECTORIES ${PAPI_INCLUDE_DIR})
+       endif ()
     endif()
 
-    mark_as_advanced(PAPI_INCLUDE_DIR PAPI_LIBRARY)
-
-    # Make PAPI an imported target and also include its public header papi.h
-    if (PAPI_FOUND AND NOT TARGET PAPI::PAPI)
-        add_library(PAPI::PAPI STATIC IMPORTED)
-        set_target_properties(
-                PAPI::PAPI
-                PROPERTIES
-                IMPORTED_LOCATION ${PAPI_LIBRARY}
-                INTERFACE_INCLUDE_DIRECTORIES ${PAPI_INCLUDE_DIR})
-    endif ()
 
 else ()
     message(FATAL_ERROR "PAPI is only available on UNIX platforms")
