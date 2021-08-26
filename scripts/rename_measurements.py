@@ -1,10 +1,11 @@
+# Searches the <path_name> directory and renames all files with the name <search_file_name>
+# with <rename_file_name>. Useful for working with Stopwatch results when each result for
+# each processor is in a seperate file.
+
+
 import os
 import sys
 
-
-folder1 = "YIN"
-folder2 = "YAN"
-f_name = "measurements.csv"
 
 def find_files(folder, file_name):
     return [os.path.join(r, fn) for r, ds, fs in os.walk(folder) for fn in fs if fn==file_name]
