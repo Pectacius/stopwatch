@@ -94,7 +94,11 @@ int add_entry_lld(const struct StringTable *table, long long value, struct Strin
   if (value == 0) {
     num_digits = 1;
   } else {
-    num_digits = (int) (log10((double) value)) + 1;
+    num_digits = (int) (log10((double)llabs(value))) + 1;
+    // Give extra space for negative sign
+    if (value < 0) {
+      num_digits++;
+    }
   }
 
   char *num_str = malloc(sizeof(char) * (num_digits + 1)); // Extra value for the null terminator
